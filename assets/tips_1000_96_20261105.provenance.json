@@ -1,0 +1,15 @@
+{
+  "sourceFile": "枪头盒_1000uL_96支.blend",
+  "sourceSha256": "e919c424cebdf204d2dc6fea2287c94e6246a2b87091f39eea7696428f6c066a",
+  "units": "meters (Blender METRIC scale_length 1)",
+  "tipCount": 96,
+  "filterCount": 96,
+  "boxDimensionsMeters": [
+    0.121,
+    0.0828,
+    0.094
+  ],
+  "tipLengthMeters": 0.0961,
+  "note": "User supplied replacement; geometry and transforms preserved, text converted to mesh. Dimensions are from model, not independently measured.",
+  "glbSha256": "47a3f82f89c1f4090b2811f968a7ce53931d418f10db7b2dd64e47beb2ebd5c4"
+}

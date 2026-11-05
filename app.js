@@ -32,9 +32,9 @@ const loader = new GLTFLoader();
 const modelCache=new Map();
 async function loadModel(file){if(!modelCache.has(file))modelCache.set(file,loader.loadAsync('assets/'+file).catch(e=>{modelCache.delete(file);throw e;}));return (await modelCache.get(file)).scene.clone(true);}
 const catalog = {
-  tips1000:{label:'枪头盒 · 1000 μL × 96（可拆分）',file:'tips_1000_96.glb',nativeScale:true,metricBasis:'model_dimensions_unverified',note:'枪头长约96.1 mm，横截面缩至74%，尺寸未经实物标定。可拆分为盒架及96支独立枪头。'},
-  tips1000_box:{label:'1000 μL 空盒架',file:'tips_1000_96.glb',nativeScale:true,part:'box',metricBasis:'model_dimensions_unverified'},
-  tips1000_tip:{label:'1000 μL 单支枪头',file:'tips_1000_96.glb',nativeScale:true,part:'tip',metricBasis:'model_dimensions_unverified'},
+  tips1000:{label:'枪头盒 · 1000 μL × 96（可拆分）',file:'tips_1000_96_20261105.glb',nativeScale:true,metricBasis:'model_dimensions_unverified',note:'2026-11-05 用户新版：盒体约121×82.8×94 mm，枪头长96.1 mm；保留源模型比例，尺寸未经实物标定。'},
+  tips1000_box:{label:'1000 μL 空盒架',file:'tips_1000_96_20261105.glb',nativeScale:true,part:'box',metricBasis:'model_dimensions_unverified'},
+  tips1000_tip:{label:'1000 μL 单支枪头',file:'tips_1000_96_20261105.glb',nativeScale:true,part:'tip',metricBasis:'model_dimensions_unverified'},
   plate:{label:'96 孔板', file:'plate_costar_measured.glb', axis:'x', size:0.124, calibrated:true},
   tips:{label:'枪头盒', file:'tips_structured.glb', axis:'x', size:0.125},
   bottle:{label:'瓶子', file:'bottle_inferred_textured.glb', axis:'y', size:0.18},
@@ -134,7 +134,8 @@ function drop(object) {placement.settle(object);updateFields();}
 async function addObject(kind, pose=null) {
   const spec=catalog[kind]; if (!spec) throw new Error('未知模型 '+kind);
   status('加载 '+spec.label+'…');
-  let model=await loadModel(spec.file);
+  const assetFile=kind.startsWith('tips1000')&&['tips_1000_96.glb','tips_1000_96_20261105.glb'].includes(pose?.assetFile||pose?.file)?(pose.assetFile||pose.file):spec.file;
+  let model=await loadModel(assetFile);
   if(spec.part==='box'){const nodes=[];model.traverse(n=>{if(/^Tip_1000uL_/.test(n.name))nodes.push(n);});nodes.forEach(n=>n.removeFromParent());}
   if(spec.part==='tip'){model.updateMatrixWorld(true);const node=model.getObjectByName(pose?.sourcePart||'Tip_1000uL_A01');if(!node)throw new Error('枪头节点不存在');const part=new THREE.Group();part.attach(node);model=part;}
   const raw=new THREE.Box3().setFromObject(model);
@@ -144,7 +145,7 @@ async function addObject(kind, pose=null) {
   model.scale.multiplyScalar(factor);
   model.position.set(-center.x*factor,-raw.min.y*factor,-center.z*factor);
   const object=new THREE.Group(); object.add(model);
-  object.userData={kind,id:nextId,label:spec.label+' '+nextId, normalization:{uniformScale:factor,translation:model.position.toArray()},metricBasis:spec.metricBasis||(spec.calibrated?'user_measured':'assumed_size'),assetVersion:spec.assetVersion||null,sourceHash:spec.sourceHash||null,assetUuid:spec.assetUuid||null,connectionInterface:spec.connectionInterface||'',acceptsInterfaces:spec.acceptsInterfaces||'',notes:spec.note||''};
+  object.userData={kind,assetFile,id:nextId,label:spec.label+' '+nextId, normalization:{uniformScale:factor,translation:model.position.toArray()},metricBasis:spec.metricBasis||(spec.calibrated?'user_measured':'assumed_size'),assetVersion:spec.assetVersion||null,sourceHash:spec.sourceHash||null,assetUuid:spec.assetUuid||null,connectionInterface:spec.connectionInterface||'',acceptsInterfaces:spec.acceptsInterfaces||'',notes:spec.note||''};
   nextId++;
   if(spec.part==='tip')object.userData.sourcePart=pose?.sourcePart||'Tip_1000uL_A01';
   if (pose) {
@@ -169,14 +170,14 @@ async function splitTipBox(object){
  object.updateMatrixWorld(true);
  const rootMatrix=object.matrixWorld.clone();
  const originalNorm=object.userData.normalization;
- const source=await loadModel(catalog.tips1000.file);
+ const source=await loadModel(object.userData.assetFile||catalog.tips1000.file);
  const names=[];source.traverse(n=>{if(/^Tip_1000uL_/.test(n.name))names.push(n.name);});
  if(names.length!==96)throw new Error('模型枪头数量异常');
  const created=[];
  try {
   for(const name of [null,...names]){
    const kind=name?'tips1000_tip':'tips1000_box';
-   const part=await addObject(kind,{position:[0,0,0],quaternion:[0,0,0,1],scale:[1,1,1],id:nextId,label:name?'枪头 '+name.replace('Tip_1000uL_',''):object.userData.label+' · 空盒架',sourcePart:name});
+   const part=await addObject(kind,{position:[0,0,0],quaternion:[0,0,0,1],scale:[1,1,1],id:nextId,label:name?'枪头 '+name.replace('Tip_1000uL_',''):object.userData.label+' · 空盒架',sourcePart:name,assetFile:object.userData.assetFile});
    created.push(part);
    const n=part.userData.normalization;
    const oldN=new THREE.Matrix4().compose(new THREE.Vector3(...originalNorm.translation),new THREE.Quaternion(),new THREE.Vector3().setScalar(originalNorm.uniformScale));
@@ -205,7 +206,7 @@ function endPlaneDrag(e){if(!planeDrag)return;planeDrag=null;orbit.enabled=true;
 renderer.domElement.addEventListener('pointerup',endPlaneDrag,true);renderer.domElement.addEventListener('pointercancel',endPlaneDrag,true);
 async function restoreLegacySlots(){
  for(const rack of objects.filter(o=>o.userData.kind==='tips1000_box'&&!o.userData.slots)){
-  const source=await loadModel('tips_1000_96.glb');source.updateMatrixWorld(true);rack.updateMatrixWorld(true);rack.userData.slots={};
+  const source=await loadModel(rack.userData.assetFile||catalog.tips1000.file);source.updateMatrixWorld(true);rack.updateMatrixWorld(true);rack.userData.slots={};
   const names=[];source.traverse(n=>{if(/^Tip_1000uL_/.test(n.name))names.push(n);});
   for(const node of names){const b=new THREE.Box3().setFromObject(node),c=b.getCenter(new THREE.Vector3());
    const n=rack.userData.normalization,local=new THREE.Matrix4().makeTranslation(...n.translation).multiply(new THREE.Matrix4().makeTranslation(c.x,b.min.y,c.z));
@@ -251,7 +252,7 @@ $('fov').onchange=()=>{camera.fov=THREE.MathUtils.clamp(Number($('fov').value)||
 $('exposure').oninput=()=>renderer.toneMappingExposure=Number($('exposure').value);
 function serializeObject(object) {
   object.updateMatrixWorld(true);
-  return {...object.userData, file:catalog[object.userData.kind].file,position:object.position.toArray(),quaternion:object.quaternion.toArray(),scale:object.scale.toArray(),matrixWorld:object.matrixWorld.toArray()};
+  return {...object.userData, file:object.userData.assetFile||catalog[object.userData.kind].file,position:object.position.toArray(),quaternion:object.quaternion.toArray(),scale:object.scale.toArray(),matrixWorld:object.matrixWorld.toArray()};
 }
 function snapshot() {
   camera.updateMatrixWorld(true);
