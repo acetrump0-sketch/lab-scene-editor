@@ -1,3 +1,4 @@
+import {createPlacement} from './placement.js';
 import {extraCatalog} from './asset-catalog.js';
 import * as THREE from 'three';
 import {OrbitControls} from './vendor/OrbitControls.js';
@@ -21,7 +22,7 @@ const transform = new TransformControls(camera, renderer.domElement);
 transform.setSize(0.65);
 scene.add(transform);
 transform.addEventListener('dragging-changed', e => { orbit.enabled = !e.value; });
-transform.addEventListener('objectChange', updateFields);
+transform.addEventListener('objectChange', ()=>{if(selected){placement.apply(selected);updateFields();}});
 scene.add(new THREE.HemisphereLight(0xe6f5ff, 0x434348, 0.9));
 const key = new THREE.DirectionalLight(0xffffff, 1.2);
 key.position.set(0.5, 2.5, 2); scene.add(key);
@@ -64,6 +65,7 @@ floor.rotation.x = -Math.PI/2; floor.position.y = -0.002; scene.add(floor);
 const boxHelper = new THREE.BoxHelper(new THREE.Object3D(), 0x8ee3eb);
 boxHelper.visible = false; scene.add(boxHelper);
 const appearance = createAppearance({scene,renderer,key,fill,floor,objects:()=>objects});
+const placement=createPlacement({objects:()=>objects,tableY:()=>tableY,status,enabled:()=>$('physics').checked});
 grid.visible=false;
 
 function resize() {
@@ -84,6 +86,7 @@ renderer.setAnimationLoop(() => {
 function status(text) {$('status').textContent = text;}
 function select(object) {
   selected = object;
+  if(object)placement.remember(object);
   if (object) transform.attach(object); else transform.detach();
   boxHelper.visible = !!object && $('guides').checked;
   $('selected').textContent = object ? object.userData.label : '选择一个器材';
@@ -108,8 +111,9 @@ for (const type of ['position','rotation','scale']) {
       if (!selected) return;
       const value = Number(input.value);
       if (!Number.isFinite(value) || (type==='scale' && value<=0)) return updateFields();
+      placement.remember(selected);
       selected[type][axis] = type==='rotation' ? THREE.MathUtils.degToRad(value) : value;
-      updateFields();
+      placement.apply(selected);updateFields();
     };
     $(type).append(label,input);
   }
@@ -126,12 +130,7 @@ function updateFields() {
   const size = new THREE.Box3().setFromObject(selected).getSize(new THREE.Vector3());
   $('dimensions').textContent='世界包围盒（X / Y / Z） '+size.toArray().map(v=>(v*1000).toFixed(1)).join(' / ')+' mm';
 }
-function drop(object) {
-  object.updateMatrixWorld(true);
-  const bounds = new THREE.Box3().setFromObject(object);
-  object.position.y += tableY - bounds.min.y;
-  updateFields();
-}
+function drop(object) {placement.settle(object);updateFields();}
 async function addObject(kind, pose=null) {
   const spec=catalog[kind]; if (!spec) throw new Error('未知模型 '+kind);
   status('加载 '+spec.label+'…');
@@ -149,12 +148,19 @@ async function addObject(kind, pose=null) {
   nextId++;
   if(spec.part==='tip')object.userData.sourcePart=pose?.sourcePart||'Tip_1000uL_A01';
   if (pose) {
+    for(const key of ['mount','slots'])if(pose[key])object.userData[key]=structuredClone(pose[key]);
     if(pose.assemblyId!==undefined)object.userData.assemblyId=pose.assemblyId;
     object.position.fromArray(pose.position); object.quaternion.fromArray(pose.quaternion); object.scale.fromArray(pose.scale);
     object.userData.id=pose.id; object.userData.label=pose.label; nextId=Math.max(nextId,pose.id+1);
   } else object.position.set((objects.length%3-1)*0.22,tableY,0.04);
   appearance.addObject(object,kind);
-  scene.add(object); objects.push(object); select(object);
+  scene.add(object); objects.push(object); placement.remember(object);select(object);
+  if(!pose&&$('physics').checked&&placement.collision([object])){
+    let found=false;
+    for(let z=.16;z>=-.15&&!found;z-=.04)for(let x=-.46;x<=.46&&!found;x+=.04){object.position.set(x,tableY,z);object.updateMatrixWorld(true);if(!placement.collision([object]))found=true;}
+    if(!found){scene.remove(object);objects=objects.filter(o=>o!==object);select(null);throw new Error('台面没有足够的无碰撞空间，请先整理器材');}
+    placement.remember(object);
+  }
   status('就绪 · 可拖动坐标轴或输入三维坐标');
   return object;
 }
@@ -179,9 +185,37 @@ async function splitTipBox(object){
    part.userData.assemblyId=object.userData.id;
   }
  }catch(e){created.forEach(p=>scene.remove(p));objects=objects.filter(p=>!created.includes(p));select(object);throw e;}
- scene.remove(object);objects=objects.filter(o=>o!==object);select(created[0]);
- status('已拆分：1 个盒架 + 96 支枪头；滤芯随对应枪头移动');
+ scene.remove(object);objects=objects.filter(o=>o!==object);placement.bind(created[0],created.slice(1));select(created[0]);
+ status('已建立盒架与96个孔位关联：移动盒架会带动盒内枪头');
  return created;
+}
+let planeDrag=null;
+const dragRay=new THREE.Raycaster();
+function dragPoint(e,plane){const r=renderer.domElement.getBoundingClientRect();dragRay.setFromCamera(new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1),camera);return dragRay.ray.intersectPlane(plane,new THREE.Vector3());}
+renderer.domElement.addEventListener('pointerdown',e=>{
+ if(!e.shiftKey||e.button!==0||busy)return;
+ const mode=$('dragPlane').value;const normal=mode==='XZ'?new THREE.Vector3(0,1,0):mode==='XY'?new THREE.Vector3(0,0,1):mode==='YZ'?new THREE.Vector3(1,0,0):camera.getWorldDirection(new THREE.Vector3());
+ dragPoint(e,new THREE.Plane());const hit=dragRay.intersectObjects(objects,true)[0];if(!hit)return;
+ let o=hit.object;while(o.parent&&!objects.includes(o))o=o.parent;select(o);
+ const plane=new THREE.Plane().setFromNormalAndCoplanarPoint(normal,o.position);const start=dragPoint(e,plane);if(!start)return;
+ planeDrag={o,plane,start,position:o.position.clone()};orbit.enabled=false;transform.enabled=false;renderer.domElement.setPointerCapture(e.pointerId);e.stopImmediatePropagation();
+},true);
+renderer.domElement.addEventListener('pointermove',e=>{if(!planeDrag)return;const p=dragPoint(e,planeDrag.plane);if(p){planeDrag.o.position.copy(planeDrag.position).add(p.sub(planeDrag.start));placement.apply(planeDrag.o);updateFields();}e.stopImmediatePropagation();},true);
+function endPlaneDrag(e){if(!planeDrag)return;planeDrag=null;orbit.enabled=true;transform.enabled=true;down=null;if(renderer.domElement.hasPointerCapture(e.pointerId))renderer.domElement.releasePointerCapture(e.pointerId);e.stopImmediatePropagation();}
+renderer.domElement.addEventListener('pointerup',endPlaneDrag,true);renderer.domElement.addEventListener('pointercancel',endPlaneDrag,true);
+async function restoreLegacySlots(){
+ for(const rack of objects.filter(o=>o.userData.kind==='tips1000_box'&&!o.userData.slots)){
+  const source=await loadModel('tips_1000_96.glb');source.updateMatrixWorld(true);rack.updateMatrixWorld(true);rack.userData.slots={};
+  const names=[];source.traverse(n=>{if(/^Tip_1000uL_/.test(n.name))names.push(n);});
+  for(const node of names){const b=new THREE.Box3().setFromObject(node),c=b.getCenter(new THREE.Vector3());
+   const n=rack.userData.normalization,local=new THREE.Matrix4().makeTranslation(...n.translation).multiply(new THREE.Matrix4().makeTranslation(c.x,b.min.y,c.z));
+   rack.userData.slots[node.name]=local.toArray();
+   const tip=objects.find(o=>o.userData.kind==='tips1000_tip'&&o.userData.sourcePart===node.name&&o.userData.assemblyId===rack.userData.assemblyId&&!o.userData.mount);
+   if(tip){const expected=rack.matrixWorld.clone().multiply(local),pos=new THREE.Vector3(),q=new THREE.Quaternion(),scale=new THREE.Vector3();expected.decompose(pos,q,scale);
+    if(pos.distanceTo(tip.position)<.001&&q.angleTo(tip.quaternion)<.01&&scale.distanceTo(tip.scale)<.001)tip.userData.mount={rackId:rack.userData.id,slot:node.name,localMatrix:local.toArray()};}
+  }
+ }
+ objects.forEach(o=>placement.remember(o));
 }
 const raycaster=new THREE.Raycaster();
 let down;
@@ -199,9 +233,12 @@ window.addEventListener('keydown',e=>{if (/INPUT|SELECT|TEXTAREA/.test(e.target.
 let actionPending=false;
 function run(action) {return async()=>{if(busy||actionPending)return;actionPending=true;try{await action();}catch(e){status('操作失败：'+e.message);console.error(e);}finally{actionPending=false;}};}
 $('add').onclick=run(async()=>{const o=await addObject($('asset').value);if(o.userData.kind==='tips1000')await splitTipBox(o);});
+$('extractTip').onclick=()=>{placement.extract(selected);updateFields();};
+$('insertTip').onclick=()=>{placement.insert(selected);updateFields();};
+$('space').onchange=()=>transform.setSpace($('space').value);
 $('splitTips').onclick=run(()=>splitTipBox(selected));
-$('duplicate').onclick=run(async()=>{if(!selected)return;const data=serializeObject(selected);data.id=nextId++;data.label=selected.userData.label+' 副本';data.position[0]+=0.08;await addObject(data.kind,data);});
-$('remove').onclick=()=>{if(!selected||busy||actionPending)return;scene.remove(selected);objects=objects.filter(o=>o!==selected);select(null);};
+$('duplicate').onclick=run(async()=>{if(!selected)return;const data=serializeObject(selected);data.id=nextId++;data.label=selected.userData.label+' 副本';delete data.mount;delete data.slots;delete data.assemblyId;data.position[1]+=0.15;const copy=await addObject(data.kind,data);if($('physics').checked&&placement.collision([copy])){scene.remove(copy);objects=objects.filter(o=>o!==copy);select(null);throw new Error('复制位置有碰撞，请腾出上方空间');}});
+$('remove').onclick=()=>{if(!selected||busy||actionPending)return;for(const tip of placement.family(selected).slice(1))delete tip.userData.mount;scene.remove(selected);objects=objects.filter(o=>o!==selected);select(null);};
 $('drop').onclick=()=>{if(selected)drop(selected);};
 $('guides').onchange=()=>{grid.visible=$('guides').checked;boxHelper.visible=!!selected&&grid.visible;};
 $('sash').oninput=()=>setSash(Number($('sash').value)/100);
@@ -236,7 +273,7 @@ $('loadFile').onchange=run(async()=>{
   for(const o of data.objects)o.position[1]+=offsetY;
   const old=[...objects];
   try {for(const o of data.objects)await addObject(o.kind,o);}catch(e){for(const o of objects.filter(o=>!old.includes(o)))scene.remove(o);objects=old;select(old[0]||null);throw e;}
-  old.forEach(o=>scene.remove(o));objects=objects.filter(o=>!old.includes(o));select(objects[0]||null);
+  old.forEach(o=>scene.remove(o));objects=objects.filter(o=>!old.includes(o));await restoreLegacySlots();select(objects[0]||null);
   camera.position.fromArray(data.camera.position);orbit.target.fromArray(data.camera.target);camera.fov=data.camera.fov;camera.updateProjectionMatrix();orbit.update();
   setSash(Number.isFinite(data.cabinet?.sashFraction)?data.cabinet.sashFraction:.65);
   appearance.apply(data.appearance?.preset!=='original_materials');
@@ -293,7 +330,7 @@ async function init(){
   const plate=await addObject('plate');plate.position.set(-0.13,tableY,0.05);
   const tips=await addObject('tips1000');tips.position.set(0.15,tableY,-0.04);await splitTipBox(tips);
   const p1000=await addObject('lichen_p1000');p1000.position.set(.32,tableY,.08);
-  workView();select(p1000);status('就绪 · 已加入力辰 P1000 R3 白模，CAD 资产按需加载');
-  window.labStudio={scene,camera,objects:()=>objects,addObject,splitTipBox,select,snapshot,annotations,exportDataset,cabinet,setSash,ready:true};
+  objects.forEach(o=>placement.remember(o));workView();select(p1000);status('就绪 · 已加入力辰 P1000 R3 白模，CAD 资产按需加载');
+  window.labStudio={scene,camera,objects:()=>objects,addObject,splitTipBox,placement,select,snapshot,annotations,exportDataset,cabinet,setSash,ready:true};
 }
 init().catch(e=>{status('加载失败：'+e.message);console.error(e);});
