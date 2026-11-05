@@ -1,3 +1,4 @@
+import {extraCatalog} from './asset-catalog.js';
 import * as THREE from 'three';
 import {OrbitControls} from './vendor/OrbitControls.js';
 import {TransformControls} from './vendor/TransformControls.js';
@@ -34,6 +35,19 @@ const catalog = {
   rack:{label:'移液管架', file:'rack.glb', axis:'x', size:0.30},
   pipette:{label:'25 mL 移液管', file:'pipette.glb', axis:'y', size:0.31}
 };
+Object.assign(catalog, extraCatalog);
+const assetSelect=$('asset');
+const originalGroup=document.createElement('optgroup');originalGroup.label='原有器材';
+while(assetSelect.firstChild)originalGroup.append(assetSelect.firstChild);
+assetSelect.append(originalGroup);
+for(const [title,filter] of [['最新重建',k=>k==='lichen_p1000'],['CAD 器材与耗材',k=>k.startsWith('cad_')&&extraCatalog[k].category==='movable'],['CAD 工位与固定件',k=>k.startsWith('cad_')&&extraCatalog[k].category!=='movable']]){
+ const group=document.createElement('optgroup');group.label=title;
+ for(const [kind,spec] of Object.entries(extraCatalog).filter(([k])=>filter(k))){const option=document.createElement('option');option.value=kind;option.textContent=spec.label;group.append(option);}assetSelect.append(group);
+}
+assetSelect.value='lichen_p1000';
+function assetInfo(spec){return [spec.note,spec.connectionInterface?'连接接口：'+spec.connectionInterface:'',spec.acceptsInterfaces?'可接收：'+spec.acceptsInterfaces:'',spec.slots?'槽位数：'+spec.slots:''].filter(Boolean).join('\n');}
+function showAssetInfo(){$('assetInfo').textContent=assetInfo(catalog[assetSelect.value]);}
+assetSelect.onchange=showAssetInfo;showAssetInfo();
 let objects = [], selected = null, cabinet, tableY = 0.625, busy = false, nextId = 1;
 let cabinetNormalization, cabinetMixer, cabinetClip;
 let sashFraction=0.65;
@@ -101,7 +115,8 @@ function updateFields() {
     if (!selected) input.value='';
     if (selected) input.value=(type==='rotation'?THREE.MathUtils.radToDeg(selected[type][axis]):selected[type][axis]).toFixed(type==='rotation'?1:4);
   }
-  if (!selected) { $('dimensions').textContent=''; return; }
+  if (!selected) { $('dimensions').textContent=''; $('selectedInfo').textContent=''; return; }
+  $('selectedInfo').textContent=assetInfo(catalog[selected.userData.kind]);
   selected.updateMatrixWorld(true);
   const size = new THREE.Box3().setFromObject(selected).getSize(new THREE.Vector3());
   $('dimensions').textContent='世界包围盒（X / Y / Z） '+size.toArray().map(v=>(v*1000).toFixed(1)).join(' / ')+' mm';
@@ -119,12 +134,12 @@ async function addObject(kind, pose=null) {
   const model=gltf.scene;
   const raw=new THREE.Box3().setFromObject(model);
   const size=raw.getSize(new THREE.Vector3());
-  const factor=spec.calibrated?1:spec.size/size[spec.axis];
+  const factor=(spec.calibrated||spec.nativeScale)?1:spec.size/size[spec.axis];
   const center=raw.getCenter(new THREE.Vector3());
   model.scale.multiplyScalar(factor);
   model.position.set(-center.x*factor,-raw.min.y*factor,-center.z*factor);
   const object=new THREE.Group(); object.add(model);
-  object.userData={kind,id:nextId,label:spec.label+' '+nextId, normalization:{uniformScale:factor,translation:model.position.toArray()},metricBasis:spec.calibrated?'user_measured':'assumed_size'};
+  object.userData={kind,id:nextId,label:spec.label+' '+nextId, normalization:{uniformScale:factor,translation:model.position.toArray()},metricBasis:spec.metricBasis||(spec.calibrated?'user_measured':'assumed_size'),assetVersion:spec.assetVersion||null,sourceHash:spec.sourceHash||null,assetUuid:spec.assetUuid||null,connectionInterface:spec.connectionInterface||'',acceptsInterfaces:spec.acceptsInterfaces||'',notes:spec.note||''};
   nextId++;
   if (pose) {
     object.position.fromArray(pose.position); object.quaternion.fromArray(pose.quaternion); object.scale.fromArray(pose.scale);
@@ -157,6 +172,7 @@ $('guides').onchange=()=>{grid.visible=$('guides').checked;boxHelper.visible=!!s
 $('sash').oninput=()=>setSash(Number($('sash').value)/100);
 $('appearance').onchange=()=>appearance.apply($('appearance').value==='studio');
 $('cleanView').onclick=()=>{select(null);grid.visible=false;$('guides').checked=false;};
+$('focusSelected').onclick=()=>{if(!selected)return;const b=new THREE.Box3().setFromObject(selected),c=b.getCenter(new THREE.Vector3()),d=Math.max(b.getSize(new THREE.Vector3()).length(),.04);orbit.target.copy(c);camera.position.copy(c).add(new THREE.Vector3(.8,.6,1).normalize().multiplyScalar(d*1.7));orbit.update();};
 $('workView').onclick=workView; $('wholeView').onclick=wholeView;
 $('detailView').onclick=()=>{camera.position.set(0.32,tableY+0.40,0.65);orbit.target.set(0,tableY+0.05,0);orbit.update();};
 $('fov').onchange=()=>{camera.fov=THREE.MathUtils.clamp(Number($('fov').value)||45,15,100);camera.updateProjectionMatrix();};
@@ -241,7 +257,8 @@ async function init(){
   appearance.setupCabinet(cabinet,tableY);
   const plate=await addObject('plate');plate.position.set(-0.13,tableY,0.05);
   const tips=await addObject('tips');tips.position.set(0.15,tableY,-0.04);
-  workView();select(plate);status('就绪 · 孔板与枪头盒已放入安全柜');
+  const p1000=await addObject('lichen_p1000');p1000.position.set(.32,tableY,.08);
+  workView();select(p1000);status('就绪 · 已加入力辰 P1000 R3 白模，CAD 资产按需加载');
   window.labStudio={scene,camera,objects:()=>objects,addObject,select,snapshot,annotations,exportDataset,cabinet,setSash,ready:true};
 }
 init().catch(e=>{status('加载失败：'+e.message);console.error(e);});
