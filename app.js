@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import {OrbitControls} from './vendor/OrbitControls.js';
 import {TransformControls} from './vendor/TransformControls.js';
 import {GLTFLoader} from './vendor/GLTFLoader.js';
-import {createAppearance} from './appearance.js?v=3';
+import {createAppearance} from './appearance.js?v=4';
 import {zipSync, strToU8} from './vendor/fflate.js';
 
 const $ = id => document.getElementById(id);
@@ -30,6 +30,7 @@ const loader = new GLTFLoader();
 const catalog = {
   plate:{label:'96 孔板', file:'plate_costar_measured.glb', axis:'x', size:0.124, calibrated:true},
   tips:{label:'枪头盒', file:'tips_structured.glb', axis:'x', size:0.125},
+  tips1000:{label:'枪头盒 · 1000 μL × 96', file:'tips_1000_96.glb', sourceUnitsMeters:true},
   bottle:{label:'瓶子', file:'bottle_inferred_textured.glb', axis:'y', size:0.18},
   rack:{label:'移液管架', file:'rack.glb', axis:'x', size:0.30},
   pipette:{label:'25 mL 移液管', file:'pipette.glb', axis:'y', size:0.31}
@@ -119,12 +120,12 @@ async function addObject(kind, pose=null) {
   const model=gltf.scene;
   const raw=new THREE.Box3().setFromObject(model);
   const size=raw.getSize(new THREE.Vector3());
-  const factor=spec.calibrated?1:spec.size/size[spec.axis];
+  const factor=spec.calibrated||spec.sourceUnitsMeters?1:spec.size/size[spec.axis];
   const center=raw.getCenter(new THREE.Vector3());
   model.scale.multiplyScalar(factor);
   model.position.set(-center.x*factor,-raw.min.y*factor,-center.z*factor);
   const object=new THREE.Group(); object.add(model);
-  object.userData={kind,id:nextId,label:spec.label+' '+nextId, normalization:{uniformScale:factor,translation:model.position.toArray()},metricBasis:spec.calibrated?'user_measured':'assumed_size'};
+  object.userData={kind,id:nextId,label:spec.label+' '+nextId, normalization:{uniformScale:factor,translation:model.position.toArray()},metricBasis:spec.calibrated?'user_measured':spec.sourceUnitsMeters?'model_dimensions_unverified':'assumed_size'};
   nextId++;
   if (pose) {
     object.position.fromArray(pose.position); object.quaternion.fromArray(pose.quaternion); object.scale.fromArray(pose.scale);

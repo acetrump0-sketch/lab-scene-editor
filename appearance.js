@@ -29,7 +29,7 @@ export function createAppearance({scene,renderer,key,fill,floor}) {
   }
   function addObject(object,kind){object.traverse(mesh=>{
     if(!mesh.isMesh)return;if(!mesh.geometry.attributes.normal)mesh.geometry.computeVertexNormals();
-    mesh.receiveShadow=true;mesh.castShadow=kind!=='plate'&&kind!=='tips';
+    mesh.receiveShadow=true;mesh.castShadow=kind!=='plate'&&kind!=='tips'&&kind!=='tips1000';
     let names=[];for(let p=mesh;p&&p!==object;p=p.parent)names.push(p.name);let name=names.join(' ');
     const material=kind==='tips'?(name.includes('Pink')?pink:/Tip_R\d/.test(name)?clearTip:boxPlastic):Array.isArray(mesh.material)?mesh.material.map(m=>refine(m,kind)):refine(mesh.material,kind);
     remember(mesh,material);
