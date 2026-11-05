@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import {OrbitControls} from './vendor/OrbitControls.js';
 import {TransformControls} from './vendor/TransformControls.js';
 import {GLTFLoader} from './vendor/GLTFLoader.js';
-import {createAppearance} from './appearance.js?v=3';
+import {createAppearance} from './appearance.js?v=5';
 import {zipSync, strToU8} from './vendor/fflate.js';
 
 const $ = id => document.getElementById(id);
@@ -28,7 +28,12 @@ key.position.set(0.5, 2.5, 2); scene.add(key);
 const fill = new THREE.PointLight(0xffffff, 0.15, 4);
 fill.position.set(0, 1.2, 0); scene.add(fill);
 const loader = new GLTFLoader();
+const modelCache=new Map();
+async function loadModel(file){if(!modelCache.has(file))modelCache.set(file,loader.loadAsync('assets/'+file).catch(e=>{modelCache.delete(file);throw e;}));return (await modelCache.get(file)).scene.clone(true);}
 const catalog = {
+  tips1000:{label:'枪头盒 · 1000 μL × 96（可拆分）',file:'tips_1000_96.glb',nativeScale:true,metricBasis:'model_dimensions_unverified',note:'枪头长约96.1 mm，横截面缩至74%，尺寸未经实物标定。可拆分为盒架及96支独立枪头。'},
+  tips1000_box:{label:'1000 μL 空盒架',file:'tips_1000_96.glb',nativeScale:true,part:'box',metricBasis:'model_dimensions_unverified'},
+  tips1000_tip:{label:'1000 μL 单支枪头',file:'tips_1000_96.glb',nativeScale:true,part:'tip',metricBasis:'model_dimensions_unverified'},
   plate:{label:'96 孔板', file:'plate_costar_measured.glb', axis:'x', size:0.124, calibrated:true},
   tips:{label:'枪头盒', file:'tips_structured.glb', axis:'x', size:0.125},
   bottle:{label:'瓶子', file:'bottle_inferred_textured.glb', axis:'y', size:0.18},
@@ -130,8 +135,9 @@ function drop(object) {
 async function addObject(kind, pose=null) {
   const spec=catalog[kind]; if (!spec) throw new Error('未知模型 '+kind);
   status('加载 '+spec.label+'…');
-  const gltf = await loader.loadAsync('assets/'+spec.file);
-  const model=gltf.scene;
+  let model=await loadModel(spec.file);
+  if(spec.part==='box'){const nodes=[];model.traverse(n=>{if(/^Tip_1000uL_/.test(n.name))nodes.push(n);});nodes.forEach(n=>n.removeFromParent());}
+  if(spec.part==='tip'){model.updateMatrixWorld(true);const node=model.getObjectByName(pose?.sourcePart||'Tip_1000uL_A01');if(!node)throw new Error('枪头节点不存在');const part=new THREE.Group();part.attach(node);model=part;}
   const raw=new THREE.Box3().setFromObject(model);
   const size=raw.getSize(new THREE.Vector3());
   const factor=(spec.calibrated||spec.nativeScale)?1:spec.size/size[spec.axis];
@@ -141,7 +147,9 @@ async function addObject(kind, pose=null) {
   const object=new THREE.Group(); object.add(model);
   object.userData={kind,id:nextId,label:spec.label+' '+nextId, normalization:{uniformScale:factor,translation:model.position.toArray()},metricBasis:spec.metricBasis||(spec.calibrated?'user_measured':'assumed_size'),assetVersion:spec.assetVersion||null,sourceHash:spec.sourceHash||null,assetUuid:spec.assetUuid||null,connectionInterface:spec.connectionInterface||'',acceptsInterfaces:spec.acceptsInterfaces||'',notes:spec.note||''};
   nextId++;
+  if(spec.part==='tip')object.userData.sourcePart=pose?.sourcePart||'Tip_1000uL_A01';
   if (pose) {
+    if(pose.assemblyId!==undefined)object.userData.assemblyId=pose.assemblyId;
     object.position.fromArray(pose.position); object.quaternion.fromArray(pose.quaternion); object.scale.fromArray(pose.scale);
     object.userData.id=pose.id; object.userData.label=pose.label; nextId=Math.max(nextId,pose.id+1);
   } else object.position.set((objects.length%3-1)*0.22,tableY,0.04);
@@ -149,6 +157,31 @@ async function addObject(kind, pose=null) {
   scene.add(object); objects.push(object); select(object);
   status('就绪 · 可拖动坐标轴或输入三维坐标');
   return object;
+}
+async function splitTipBox(object){
+ if(!object||object.userData.kind!=='tips1000')throw new Error('请先选择1000 μL整盒');
+ object.updateMatrixWorld(true);
+ const rootMatrix=object.matrixWorld.clone();
+ const originalNorm=object.userData.normalization;
+ const source=await loadModel(catalog.tips1000.file);
+ const names=[];source.traverse(n=>{if(/^Tip_1000uL_/.test(n.name))names.push(n.name);});
+ if(names.length!==96)throw new Error('模型枪头数量异常');
+ const created=[];
+ try {
+  for(const name of [null,...names]){
+   const kind=name?'tips1000_tip':'tips1000_box';
+   const part=await addObject(kind,{position:[0,0,0],quaternion:[0,0,0,1],scale:[1,1,1],id:nextId,label:name?'枪头 '+name.replace('Tip_1000uL_',''):object.userData.label+' · 空盒架',sourcePart:name});
+   created.push(part);
+   const n=part.userData.normalization;
+   const oldN=new THREE.Matrix4().compose(new THREE.Vector3(...originalNorm.translation),new THREE.Quaternion(),new THREE.Vector3().setScalar(originalNorm.uniformScale));
+   const newN=new THREE.Matrix4().compose(new THREE.Vector3(...n.translation),new THREE.Quaternion(),new THREE.Vector3().setScalar(n.uniformScale));
+   rootMatrix.clone().multiply(oldN).multiply(newN.invert()).decompose(part.position,part.quaternion,part.scale);
+   part.userData.assemblyId=object.userData.id;
+  }
+ }catch(e){created.forEach(p=>scene.remove(p));objects=objects.filter(p=>!created.includes(p));select(object);throw e;}
+ scene.remove(object);objects=objects.filter(o=>o!==object);select(created[0]);
+ status('已拆分：1 个盒架 + 96 支枪头；滤芯随对应枪头移动');
+ return created;
 }
 const raycaster=new THREE.Raycaster();
 let down;
@@ -163,10 +196,12 @@ renderer.domElement.addEventListener('pointerup', e => {
 function setMode(mode) {transform.setMode(mode);document.querySelectorAll('[data-mode]').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));}
 document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
 window.addEventListener('keydown',e=>{if (/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;const mode={w:'translate',e:'rotate',r:'scale'}[e.key.toLowerCase()];if(mode)setMode(mode);});
-function run(action) {return async()=>{if(busy)return;try{await action();}catch(e){status('操作失败：'+e.message);console.error(e);}};}
-$('add').onclick=run(()=>addObject($('asset').value));
+let actionPending=false;
+function run(action) {return async()=>{if(busy||actionPending)return;actionPending=true;try{await action();}catch(e){status('操作失败：'+e.message);console.error(e);}finally{actionPending=false;}};}
+$('add').onclick=run(async()=>{const o=await addObject($('asset').value);if(o.userData.kind==='tips1000')await splitTipBox(o);});
+$('splitTips').onclick=run(()=>splitTipBox(selected));
 $('duplicate').onclick=run(async()=>{if(!selected)return;const data=serializeObject(selected);data.id=nextId++;data.label=selected.userData.label+' 副本';data.position[0]+=0.08;await addObject(data.kind,data);});
-$('remove').onclick=()=>{if(!selected||busy)return;scene.remove(selected);objects=objects.filter(o=>o!==selected);select(null);};
+$('remove').onclick=()=>{if(!selected||busy||actionPending)return;scene.remove(selected);objects=objects.filter(o=>o!==selected);select(null);};
 $('drop').onclick=()=>{if(selected)drop(selected);};
 $('guides').onchange=()=>{grid.visible=$('guides').checked;boxHelper.visible=!!selected&&grid.visible;};
 $('sash').oninput=()=>setSash(Number($('sash').value)/100);
@@ -193,7 +228,7 @@ $('load').onclick=()=>$('loadFile').click();
 $('loadFile').onchange=run(async()=>{
   const file=$('loadFile').files[0];if(!file)return;
   const data=JSON.parse(await file.text());
-  if(data.version!==1||!Array.isArray(data.objects)||data.objects.length>40)throw new Error('场景格式或物体数量不支持');
+  if(data.version!==1||!Array.isArray(data.objects)||data.objects.length>1000)throw new Error('场景格式或物体数量不支持');
   for(const o of data.objects){if(!catalog[o.kind]||![o.position,o.quaternion,o.scale].every(a=>Array.isArray(a)&&a.every(Number.isFinite))||o.position.length!==3||o.quaternion.length!==4||o.scale.length!==3||o.scale.some(v=>v<=0))throw new Error('物体位姿无效');}
   if(!data.camera || ![data.camera.position,data.camera.target].every(a=>Array.isArray(a)&&a.length===3&&a.every(Number.isFinite)) || !Number.isFinite(data.camera.fov) || data.camera.fov<15 || data.camera.fov>100 || !Number.isFinite(data.exposure)) throw new Error('相机参数无效');
   if(new Set(data.objects.map(o=>o.id)).size!==data.objects.length)throw new Error('物体标识重复');
@@ -256,9 +291,9 @@ async function init(){
   scene.add(cabinet);grid.position.y=tableY+0.002;
   appearance.setupCabinet(cabinet,tableY);
   const plate=await addObject('plate');plate.position.set(-0.13,tableY,0.05);
-  const tips=await addObject('tips');tips.position.set(0.15,tableY,-0.04);
+  const tips=await addObject('tips1000');tips.position.set(0.15,tableY,-0.04);await splitTipBox(tips);
   const p1000=await addObject('lichen_p1000');p1000.position.set(.32,tableY,.08);
   workView();select(p1000);status('就绪 · 已加入力辰 P1000 R3 白模，CAD 资产按需加载');
-  window.labStudio={scene,camera,objects:()=>objects,addObject,select,snapshot,annotations,exportDataset,cabinet,setSash,ready:true};
+  window.labStudio={scene,camera,objects:()=>objects,addObject,splitTipBox,select,snapshot,annotations,exportDataset,cabinet,setSash,ready:true};
 }
 init().catch(e=>{status('加载失败：'+e.message);console.error(e);});
