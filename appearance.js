@@ -36,6 +36,13 @@ export function createAppearance({scene,renderer,key,fill,floor}) {
     // Thin transparent parts must not cast the opaque silhouette used by basic shadow maps.
     if(kind==='tips'&&name.includes('Pink'))mesh.castShadow=true;
   });}
+  function removeObjects(objects){
+    const meshes=new Set();
+    for(const object of objects)object.traverse(mesh=>{if(mesh.isMesh)meshes.add(mesh);});
+    let count=0;
+    for(const record of records)if(!meshes.has(record.mesh))records[count++]=record;
+    records.length=count;
+  }
   function box(name,size,pos,material){let m=new THREE.Mesh(new THREE.BoxGeometry(...size),material);m.name=name;m.position.set(...pos);m.receiveShadow=true;details.add(m);return m;}
   function setupCabinet(cabinet,height){tableY=height;
     cabinet.traverse(mesh=>{if(!mesh.isMesh)return;if(!mesh.geometry.attributes.normal)mesh.geometry.computeVertexNormals();mesh.receiveShadow=true;
@@ -63,5 +70,5 @@ export function createAppearance({scene,renderer,key,fill,floor}) {
     for(let r of records)r.mesh.material=value?r.material:r.original;scene.background.set(value?0xbdcbd1:0x293b4e);
   }
   function settings(){return {version:3,preset:enabled?'studio_materials':'original_materials',environment:'procedural_RoomEnvironment',shadowMap:'PCFSoft_2048',tableReflection:'planar_1024_blend_0.19',overrides:enabled?['user_cabinet','clear_PS_plate','clear_PP_tips','brushed_worktop','glass_sash','task_light','laboratory_wall']:[],note:'Physically based visual approximations, not measured optical properties. Thin transparent parts do not cast opaque shadow-map silhouettes.'};}
-  return {addObject,setupCabinet,apply,settings};
+  return {addObject,removeObjects,setupCabinet,apply,settings};
 }
