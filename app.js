@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import {OrbitControls} from './vendor/OrbitControls.js';
 import {TransformControls} from './vendor/TransformControls.js';
 import {GLTFLoader} from './vendor/GLTFLoader.js';
-import {createAppearance} from './appearance.js?v=5';
+import {createAppearance} from './appearance.js?v=6';
 import {zipSync, strToU8} from './vendor/fflate.js';
 
 const $ = id => document.getElementById(id);
@@ -54,7 +54,7 @@ assetSelect.value='lichen_p1000';
 function assetInfo(spec){return [spec.note,spec.connectionInterface?'连接接口：'+spec.connectionInterface:'',spec.acceptsInterfaces?'可接收：'+spec.acceptsInterfaces:'',spec.slots?'槽位数：'+spec.slots:''].filter(Boolean).join('\n');}
 function showAssetInfo(){$('assetInfo').textContent=assetInfo(catalog[assetSelect.value]);}
 assetSelect.onchange=showAssetInfo;showAssetInfo();
-let objects = [], selected = null, cabinet, tableY = 0.625, busy = false, nextId = 1;
+let objects = [], selected = null, cabinet, tableY = 0.625, busy = false, actionPending = false, initialized = false, nextId = 1;
 let cabinetNormalization, cabinetMixer, cabinetClip;
 let sashFraction=0.65;
 function setSash(value){sashFraction=THREE.MathUtils.clamp(value,0,1);if(cabinetMixer)cabinetMixer.setTime(sashFraction*59/24);$('sash').value=Math.round(sashFraction*100);}
@@ -101,7 +101,9 @@ function renderList() {
     button.onclick = () => select(object);
     $('objects').append(button);
   }
+  updateClearButton();
 }
+function updateClearButton() {$('clearWorkspace').disabled=!initialized||busy||actionPending||objects.length===0;}
 for (const type of ['position','rotation','scale']) {
   for (const axis of ['x','y','z']) {
     const label = document.createElement('span'); label.textContent = axis.toUpperCase();
@@ -231,8 +233,7 @@ renderer.domElement.addEventListener('pointerup', e => {
 function setMode(mode) {transform.setMode(mode);document.querySelectorAll('[data-mode]').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));}
 document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
 window.addEventListener('keydown',e=>{if (/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;const mode={w:'translate',e:'rotate',r:'scale'}[e.key.toLowerCase()];if(mode)setMode(mode);});
-let actionPending=false;
-function run(action) {return async()=>{if(busy||actionPending)return;actionPending=true;try{await action();}catch(e){status('操作失败：'+e.message);console.error(e);}finally{actionPending=false;}};}
+function run(action) {return async()=>{if(busy||actionPending)return;actionPending=true;updateClearButton();try{await action();}catch(e){status('操作失败：'+e.message);console.error(e);}finally{actionPending=false;updateClearButton();}};}
 $('add').onclick=run(async()=>{const o=await addObject($('asset').value);if(o.userData.kind==='tips1000')await splitTipBox(o);});
 $('extractTip').onclick=()=>{placement.extract(selected);updateFields();};
 $('insertTip').onclick=()=>{placement.insert(selected);updateFields();};
@@ -240,6 +241,13 @@ $('space').onchange=()=>transform.setSpace($('space').value);
 $('splitTips').onclick=run(()=>splitTipBox(selected));
 $('duplicate').onclick=run(async()=>{if(!selected)return;const data=serializeObject(selected);data.id=nextId++;data.label=selected.userData.label+' 副本';delete data.mount;delete data.slots;delete data.assemblyId;data.position[1]+=0.15;const copy=await addObject(data.kind,data);if($('physics').checked&&placement.collision([copy])){scene.remove(copy);objects=objects.filter(o=>o!==copy);select(null);throw new Error('复制位置有碰撞，请腾出上方空间');}});
 $('remove').onclick=()=>{if(!selected||busy||actionPending)return;for(const tip of placement.family(selected).slice(1))delete tip.userData.mount;scene.remove(selected);objects=objects.filter(o=>o!==selected);select(null);};
+$('clearWorkspace').onclick=()=>{
+  if(!initialized||busy||actionPending||objects.length===0)return;
+  if(!window.confirm(`确定清空工作区中的全部 ${objects.length} 个器材吗？此操作无法撤销。`))return;
+  appearance.removeObjects(objects);
+  objects.forEach(object=>scene.remove(object));objects=[];
+  select(null);status('工作区已清空，可以重新加入器材');
+};
 $('drop').onclick=()=>{if(selected)drop(selected);};
 $('guides').onchange=()=>{grid.visible=$('guides').checked;boxHelper.visible=!!selected&&grid.visible;};
 $('sash').oninput=()=>setSash(Number($('sash').value)/100);
@@ -333,5 +341,6 @@ async function init(){
   const p1000=await addObject('lichen_p1000');p1000.position.set(.32,tableY,.08);
   objects.forEach(o=>placement.remember(o));workView();select(p1000);status('就绪 · 已加入力辰 P1000 R3 白模，CAD 资产按需加载');
   window.labStudio={scene,camera,objects:()=>objects,addObject,splitTipBox,placement,select,snapshot,annotations,exportDataset,cabinet,setSash,ready:true};
+  initialized=true;updateClearButton();
 }
 init().catch(e=>{status('加载失败：'+e.message);console.error(e);});
