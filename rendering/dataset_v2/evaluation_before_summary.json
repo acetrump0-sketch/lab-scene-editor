@@ -1,0 +1,84 @@
+{
+  "weights": "/root/autodl-tmp/synthetic_keypoints_blue_red_v2/base_model.pt",
+  "data_root": "/root/autodl-tmp/synthetic_keypoints_blue_red_v2",
+  "images": 400,
+  "resolution": [
+    1280,
+    960
+  ],
+  "inference_imgsz": 960,
+  "model": "YOLO26n-pose, one keypoint per instance, two classes",
+  "match_rule": "class-wise Hungarian box IoU >= 0.3; detection confidence >=.25; keypoint confidence >=.25",
+  "visibility": "opaque proxy rim >=25%; not measured optical visibility",
+  "eligible_keypoints": {
+    "0": 20323,
+    "1": 296
+  },
+  "matched_keypoints": {
+    "0": 980,
+    "1": 295
+  },
+  "single_center_error_px": {
+    "0": {
+      "mean": 2.695822471293279,
+      "median": 2.2849381139073843,
+      "p90": 5.028665081473556,
+      "p95": 6.172895119112046
+    },
+    "1": {
+      "mean": 1.3511275304105443,
+      "median": 1.171739018188789,
+      "p90": 2.302491919421822,
+      "p95": 3.150139254419613
+    }
+  },
+  "box_counts": {
+    "gt": {
+      "0": 20467,
+      "1": 325
+    },
+    "predicted": {
+      "0": 4844,
+      "1": 325
+    },
+    "matched": {
+      "0": 980,
+      "1": 322
+    }
+  },
+  "eligible_pairs": 16147,
+  "matched_pairs": 743,
+  "pair_coverage": 0.04601473958010776,
+  "delta_error_l2_px": {
+    "mean": 2.9303571540041142,
+    "median": 2.582779448128241,
+    "p90": 5.33650553351588,
+    "p95": 6.510585748500985
+  },
+  "delta_xy_mae_px": [
+    1.6991102425223166,
+    2.032878900172323
+  ],
+  "delta_xy_bias_px": [
+    0.5692627327018123,
+    0.7473950347184607
+  ],
+  "pair_success_all_eligible": {
+    "2": 0.017340682479717595,
+    "5": 0.04044094878305567,
+    "10": 0.045890877562395495
+  },
+  "nearest_pair_eligible_frames": 281,
+  "nearest_pair_success": {
+    "2": 0.028469750889679714,
+    "5": 0.07829181494661921,
+    "10": 0.07829181494661921
+  },
+  "latency_seconds_excluding_first": {
+    "mean": 0.00946346909376118,
+    "median": 0.009179629967547953,
+    "p90": 0.009686536621302366,
+    "p95": 0.010115259164012968
+  },
+  "scope": "held-out randomized scenes of same mesh and renderer; not real-photo accuracy; offline GT matching does not establish deployable slot assignment"
+}

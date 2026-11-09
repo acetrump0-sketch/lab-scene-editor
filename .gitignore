@@ -3,3 +3,4 @@ __pycache__/
 rendering/output/
 .DS_Store
 rendering/dataset/output/
+rendering/dataset_v2/output/
