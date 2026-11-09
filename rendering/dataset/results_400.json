@@ -1,0 +1,82 @@
+{
+  "images": 200,
+  "resolution": [
+    1280,
+    960
+  ],
+  "inference_imgsz": 960,
+  "model": "YOLO26n-pose, one keypoint per instance, two classes",
+  "match_rule": "class-wise Hungarian box IoU >= 0.3; detection confidence >=.25; keypoint confidence >=.25",
+  "visibility": "opaque proxy rim >=25%; not measured optical visibility",
+  "eligible_keypoints": {
+    "0": 7711,
+    "1": 152
+  },
+  "matched_keypoints": {
+    "0": 5769,
+    "1": 149
+  },
+  "single_center_error_px": {
+    "0": {
+      "mean": 3.053437610525769,
+      "median": 2.2179772949183016,
+      "p90": 6.565801576783285,
+      "p95": 8.550467800897248
+    },
+    "1": {
+      "mean": 1.6447174514885772,
+      "median": 1.1453805699592599,
+      "p90": 2.8856975752296954,
+      "p95": 4.974996985611245
+    }
+  },
+  "box_counts": {
+    "gt": {
+      "0": 7769,
+      "1": 161
+    },
+    "predicted": {
+      "0": 6432,
+      "1": 158
+    },
+    "matched": {
+      "0": 5786,
+      "1": 153
+    }
+  },
+  "eligible_pairs": 6178,
+  "matched_pairs": 4636,
+  "pair_coverage": 0.7504046617028165,
+  "delta_error_l2_px": {
+    "mean": 3.664288869822209,
+    "median": 2.8489442118735337,
+    "p90": 7.443441963223517,
+    "p95": 9.474473367722997
+  },
+  "delta_xy_mae_px": [
+    2.543208022691933,
+    2.057585770280176
+  ],
+  "delta_xy_bias_px": [
+    0.26029655727669454,
+    0.5680200825072546
+  ],
+  "pair_success_all_eligible": {
+    "2": 0.24150210424085464,
+    "5": 0.5841696341858207,
+    "10": 0.7190029135642603
+  },
+  "nearest_pair_eligible_frames": 145,
+  "nearest_pair_success": {
+    "2": 0.36551724137931035,
+    "5": 0.7379310344827587,
+    "10": 0.8068965517241379
+  },
+  "latency_seconds_excluding_first": {
+    "mean": 0.009303168654582234,
+    "median": 0.009158386965282261,
+    "p90": 0.00985251443926245,
+    "p95": 0.010044096771162003
+  },
+  "scope": "held-out randomized scenes of same mesh and renderer; not real-photo accuracy; offline GT matching does not establish deployable slot assignment"
+}

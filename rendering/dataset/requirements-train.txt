@@ -1,0 +1,4 @@
+ultralytics==8.4.183
+scipy>=1.10,<2
+PyYAML>=6,<7
+# Tested with torch 2.8.0+cu128 already installed on server.

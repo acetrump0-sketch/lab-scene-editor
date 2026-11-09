@@ -333,6 +333,6 @@ async function init(){
   const tips=await addObject('tips2000');tips.position.set(0.15,tableY,-0.04);await splitTipBox(tips);
   const p1000=await addObject('lichen_p1000');p1000.position.set(.32,tableY,.08);
   objects.forEach(o=>placement.remember(o));workView();select(p1000);status('就绪 · 已加入力辰 P1000 R3 白模，CAD 资产按需加载');
-  window.labStudio={scene,camera,objects:()=>objects,addObject,splitTipBox,placement,select,snapshot,annotations,exportDataset,cabinet,setSash,ready:true};
+  window.labStudio={renderer,key,fill,appearance,transform,grid,boxHelper,scene,camera,objects:()=>objects,addObject,splitTipBox,placement,select,snapshot,annotations,exportDataset,cabinet,setSash,ready:true};
 }
 init().catch(e=>{status('加载失败：'+e.message);console.error(e);});

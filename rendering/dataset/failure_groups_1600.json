@@ -1,0 +1,66 @@
+{
+  "opacity_high": {
+    "images": 64,
+    "eligible_pairs": 1987,
+    "matched_pairs": 1489,
+    "coverage": 0.7493709109209864,
+    "p90_error_px": 4.56591563987238,
+    "success_within_5px": 0.6874685455460493
+  },
+  "occupancy_sparse": {
+    "images": 48,
+    "eligible_pairs": 600,
+    "matched_pairs": 536,
+    "coverage": 0.8933333333333333,
+    "p90_error_px": 3.741957396746976,
+    "success_within_5px": 0.8366666666666667
+  },
+  "higher_angle": {
+    "images": 130,
+    "eligible_pairs": 4252,
+    "matched_pairs": 3479,
+    "coverage": 0.8182031984948259,
+    "p90_error_px": 4.8376042797107734,
+    "success_within_5px": 0.7417685794920038
+  },
+  "opacity_mid": {
+    "images": 88,
+    "eligible_pairs": 2780,
+    "matched_pairs": 1976,
+    "coverage": 0.7107913669064748,
+    "p90_error_px": 5.156322392825848,
+    "success_within_5px": 0.637410071942446
+  },
+  "occupancy_mid": {
+    "images": 130,
+    "eligible_pairs": 4432,
+    "matched_pairs": 3295,
+    "coverage": 0.743456678700361,
+    "p90_error_px": 5.126045175498153,
+    "success_within_5px": 0.6669675090252708
+  },
+  "near_horizontal": {
+    "images": 70,
+    "eligible_pairs": 1926,
+    "matched_pairs": 980,
+    "coverage": 0.5088265835929388,
+    "p90_error_px": 5.1958719863630565,
+    "success_within_5px": 0.45586708203530635
+  },
+  "opacity_low": {
+    "images": 48,
+    "eligible_pairs": 1411,
+    "matched_pairs": 994,
+    "coverage": 0.7044649184975195,
+    "p90_error_px": 5.066425348602557,
+    "success_within_5px": 0.6335931963146705
+  },
+  "occupancy_dense": {
+    "images": 22,
+    "eligible_pairs": 1146,
+    "matched_pairs": 628,
+    "coverage": 0.5479930191972077,
+    "p90_error_px": 4.7756068057264915,
+    "success_within_5px": 0.5008726003490401
+  }
+}
