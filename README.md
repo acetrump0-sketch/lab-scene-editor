@@ -35,8 +35,8 @@ Three.js 与 fflate 的许可证位于 vendor/。模型尺寸中除说明的实�
 
 资产明细见 [asset-inventory.json](asset-inventory.json)。大型 CAD 工位默认也从台面加入，请通过位置/旋转调整，避免与现有柜体重叠。
 
-## 带坐标标注的固定场景渲染
+## 当前虚拟环境
 
-[操作说明](instruction.md) · [数据方案](rendering/PLAN.md) · [独立渲染编辑器](rendering/engine/)
+[虚拟环境说明](instruction.md) · [蓝色枪头与红色托盘场景编辑器](rendering/engine/)
 
-支持8个偏水平视角、3840×2880原图、XYZ坐标轴、8×12孔位矩阵，以及枪口到最近枪头的毫米位置与像素投影。
+仓库只维护场景编辑器、材质、三维资产、场景配置及运行说明。训练数据、实验报告、模型权重以及批量生成、训练和评估脚本保存在本地，不进入仓库。
