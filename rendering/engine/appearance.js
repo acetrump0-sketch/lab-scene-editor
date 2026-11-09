@@ -25,6 +25,15 @@ export function createAppearance({scene,renderer,key,fill,floor}) {
   const bluePP=new THREE.MeshPhysicalMaterial({name:'Blue molded plastic',color:0x16458a,metalness:0,roughness:.4,ior:1.49,clearcoat:.08,clearcoatRoughness:.35});
   const lidPlastic=new THREE.MeshPhysicalMaterial({name:'Clear open lid',color:0xf3f2e8,roughness:.19,metalness:0,ior:1.49,specularIntensity:.7,transparent:true,opacity:.18,depthWrite:false,side:THREE.FrontSide});
   const mouthPlastic=new THREE.MeshPhysicalMaterial({name:'Molded mouth ridges',color:0xf1f4f5,roughness:.24,metalness:0,ior:1.49,transparent:true,opacity:.46,depthWrite:false,side:THREE.FrontSide});
+  let palette='blue-tips-red-tray';
+  function setPalette(value='blue-tips-red-tray'){
+    if(!['blue-tips-red-tray','clear-tips-blue-tray'].includes(value))throw new Error('Unknown material palette: '+value);
+    palette=value;const colored=value==='blue-tips-red-tray';
+    tipPP.color.set(colored?0x1684cf:0xf1f4f5);tipPP.opacity=colored?.42:.24;
+    mouthPlastic.color.set(colored?0x1684cf:0xf1f4f5);mouthPlastic.opacity=colored?.55:.46;
+    bluePP.color.set(colored?0xc51625:0x16458a);
+  }
+  setPalette();
   const pink=new THREE.MeshPhysicalMaterial({color:0xd97d9d,roughness:.37,clearcoat:.18});
   const canvas=document.createElement('canvas');canvas.width=256;canvas.height=256;
   const ctx=canvas.getContext('2d');let seed=14327;
@@ -90,6 +99,7 @@ export function createAppearance({scene,renderer,key,fill,floor}) {
     key.intensity=value?2.1:1.2;key.position.set(-.3,tableY+.55,.42);key.target.position.set(.05,tableY,-.06);fill.position.set(.35,tableY+.27,-.07);fill.intensity=value?.045:.15;
     for(let r of records)r.mesh.material=value?r.material:r.original;scene.background.set(value?0xbdcbd1:0x293b4e);
   }
-  function settings(){return {version:5,preset:enabled?'studio_materials':'original_materials',environment:'procedural_RoomEnvironment',shadowMap:'PCFSoft_2048',tableReflection:'planar_1024_blend_0.19',overrides:enabled?['user_cabinet','clear_PS_plate','clear_PP_tips','video_reference_PP_tip_024_angle_shell_038_rim_038','brushed_worktop','glass_sash','task_light','laboratory_wall']:[],note:'Physically based visual approximations, not measured optical properties. Thin transparent parts do not cast opaque shadow-map silhouettes.'};}
-  return {addObject,setupCabinet,apply,settings};
+  function settings(){return {version:5,preset:enabled?'studio_materials':'original_materials',environment:'procedural_RoomEnvironment',shadowMap:'PCFSoft_2048',tableReflection:'planar_1024_blend_0.19',overrides:enabled?['user_cabinet','clear_PS_plate',palette==='blue-tips-red-tray'?'blue_PP_tips_red_tray':'clear_PP_tips',palette==='blue-tips-red-tray'?'blue_tip_042_angle_shell_038_rim_038':'video_reference_PP_tip_024_angle_shell_038_rim_038','brushed_worktop','glass_sash','task_light','laboratory_wall']:[],note:'Physically based visual approximations, not measured optical properties. Thin transparent parts do not cast opaque shadow-map silhouettes.'};}
+  const originalSettings=settings;
+  return {addObject,setupCabinet,apply,setPalette,settings:()=>({...originalSettings(),version:6,palette,materialColors:{tip:'#'+tipPP.color.getHexString(),tray:'#'+bluePP.color.getHexString()},tipBaseOpacity:tipPP.opacity})};
 }

@@ -1,5 +1,7 @@
 async()=>{
  const T=await import('../../vendor/three.module.js'),s=labStudio;
+ // Preserve the published v1 dataset appearance when the editor default changes.
+ s.appearance.setPalette('clear-tips-blue-tray');
  document.getElementById('physics').checked=false;
  for(const o of [...s.objects()])if(['plate','lichen_p1000'].includes(o.userData.kind)){s.select(o);document.getElementById('remove').click();}
  const rack=s.objects().find(o=>o.userData.kind==='tips2000_box');rack.position.set(0,.62993,0);s.placement.carry(rack);

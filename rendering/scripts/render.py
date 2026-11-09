@@ -41,8 +41,9 @@ with sync_playwright() as p:
   tmp.unlink();print('rendered',name,flush=True)
  after=page.evaluate('labStudio.snapshot().objects')
  assert before==after,'Scene objects changed'
+ original['appearance']=page.evaluate('labStudio.appearance.settings()')
  b.close()
-(out/'scene.json').write_text(source.read_text())
+(out/'scene.json').write_text(json.dumps(original,ensure_ascii=False,indent=2))
 (out/'verification.json').write_text(json.dumps({'objectTransformsUnchanged':True,'objects':len(before),'tipCount':23,'nozzleGapMeters':.015,'sourceScene':'rendering/scenes/horizontal.json','views':views,'target':target,'resolution':[3840,2880]},indent=2))
 canvas=Image.new('RGB',(1600,990),'#e8ecef');draw=ImageDraw.Draw(canvas)
 for i,(name,_,_) in enumerate(views):

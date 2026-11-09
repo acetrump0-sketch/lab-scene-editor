@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import {OrbitControls} from '../../vendor/OrbitControls.js';
 import {TransformControls} from '../../vendor/TransformControls.js';
 import {GLTFLoader} from '../../vendor/GLTFLoader.js';
-import {createAppearance} from './appearance.js?v=5';
+import {createAppearance} from './appearance.js?v=6';
 import {zipSync, strToU8} from '../../vendor/fflate.js';
 
 const $ = id => document.getElementById(id);
@@ -279,6 +279,7 @@ $('loadFile').onchange=run(async()=>{
   camera.position.fromArray(data.camera.position);orbit.target.fromArray(data.camera.target);camera.fov=data.camera.fov;camera.updateProjectionMatrix();orbit.update();
   setSash(Number.isFinite(data.cabinet?.sashFraction)?data.cabinet.sashFraction:.65);
   appearance.apply(data.appearance?.preset!=='original_materials');
+  appearance.setPalette(data.appearance?.palette||'blue-tips-red-tray');
   $('appearance').value=data.appearance?.preset==='original_materials'?'original':'studio';
   renderer.toneMappingExposure=data.exposure; $('exposure').value=data.exposure;$('fov').value=camera.fov;
 });
