@@ -47,11 +47,11 @@ const assetSelect=$('asset');
 const originalGroup=document.createElement('optgroup');originalGroup.label='原有器材';
 while(assetSelect.firstChild)originalGroup.append(assetSelect.firstChild);
 assetSelect.append(originalGroup);
-for(const [title,filter] of [['最新重建',k=>k==='lichen_p1000'],['CAD 器材与耗材',k=>k.startsWith('cad_')&&extraCatalog[k].category==='movable'],['CAD 工位与固定件',k=>k.startsWith('cad_')&&extraCatalog[k].category!=='movable']]){
+for(const [title,filter] of [['最新重建',k=>k==='lichen_p1000'||k==='pipette_stand_metal_tip'],['CAD 器材与耗材',k=>k.startsWith('cad_')&&extraCatalog[k].category==='movable'],['CAD 工位与固定件',k=>k.startsWith('cad_')&&extraCatalog[k].category!=='movable']]){
  const group=document.createElement('optgroup');group.label=title;
  for(const [kind,spec] of Object.entries(extraCatalog).filter(([k])=>filter(k))){const option=document.createElement('option');option.value=kind;option.textContent=spec.label;group.append(option);}assetSelect.append(group);
 }
-assetSelect.value='lichen_p1000';
+assetSelect.value='pipette_stand_metal_tip';
 function assetInfo(spec){return [spec.note,spec.connectionInterface?'连接接口：'+spec.connectionInterface:'',spec.acceptsInterfaces?'可接收：'+spec.acceptsInterfaces:'',spec.slots?'槽位数：'+spec.slots:''].filter(Boolean).join('\n');}
 function showAssetInfo(){$('assetInfo').textContent=assetInfo(catalog[assetSelect.value]);}
 assetSelect.onchange=showAssetInfo;showAssetInfo();
@@ -334,8 +334,8 @@ async function init(){
   window.laboratoryEnvironment = await createLaboratoryEnvironment({scene,camera,orbit,loader,floor,renderer});
   const plate=await addObject('plate');plate.position.set(-0.13,tableY,0.05);
   const tips=await addObject('tips2000');tips.position.set(0.15,tableY,-0.04);await splitTipBox(tips);
-  const p1000=await addObject('lichen_p1000');p1000.position.set(.32,tableY,.08);
-  objects.forEach(o=>placement.remember(o));workView();select(p1000);status('就绪 · 已加入力辰 P1000 R3 白模，CAD 资产按需加载');
+  const newPipette=await addObject('pipette_stand_metal_tip');newPipette.position.set(.32,tableY,.08);
+  objects.forEach(o=>placement.remember(o));workView();select(newPipette);status('就绪 · 已加入新移液枪，独立资产可移动、旋转和缩放');
   window.labStudio={scene,camera,objects:()=>objects,addObject,splitTipBox,placement,select,snapshot,annotations,exportDataset,cabinet,setSash,ready:true};
   window.laboratoryEnvironment.setWorkcellItems(()=>[cabinet,grid,...objects]);window.laboratoryEnvironment.editorView();select(null);status('编辑器就绪 · 可选择独立器材拖动，左键环绕、右键平移、滚轮缩放');
 }

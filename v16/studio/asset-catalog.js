@@ -1,4 +1,13 @@
 export const extraCatalog = {
+  "pipette_stand_metal_tip": {
+  "label": "新移液枪 · 绿色支架与金属末端",
+  "file": "pipette_stand_metal_tip.glb",
+  "nativeScale": true,
+  "metricBasis": "assumed_length_250mm_not_measured",
+  "note": "用户提供的 Blender 模型，保留18个部件及原材质。源文件未标定单位；展示总长暂设250 mm，非实测。作为独立资产可拖动、旋转、缩放。",
+  "assetVersion": "20261113",
+  "sourceHash": "4dab0483198904645b35063430f1b718c435b18c77d2af6c29825dcdc76005d5"
+},
   "lichen_p1000": {
     "label": "力辰 P1000 · R3 白模",
     "file": "lichen_p1000_r3_white.glb",
