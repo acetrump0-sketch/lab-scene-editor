@@ -1,0 +1,34 @@
+{
+  "status": "coarse_contour_candidate_not_precision_registration",
+  "basis": "cabinet cluster topdown x~0.2..1.45 z~-2.1..0.95, scan floor y~2.55; source mesh precise width1.3 height1.601638 depth0.614089",
+  "uniform_scale_model_to_scan": 2.346153846153846,
+  "model_to_cabinet_scan_row_major": [
+    [
+      0.0,
+      0.0,
+      -2.346153846153846,
+      0.825
+    ],
+    [
+      0.0,
+      -2.346153846153846,
+      0.0,
+      2.55
+    ],
+    [
+      -2.346153846153846,
+      0.0,
+      0.0,
+      -0.575
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "source_asset_unchanged": true,
+  "metric_scale_verified": false,
+  "not_for_robot_motion": true
+}

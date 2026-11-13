@@ -2,6 +2,12 @@
 
 基于 Three.js 的实验室器材布局、相机取景与数据集导出工具。
 
+## 最新版本 V16
+
+[在线打开可编辑仿真环境](https://acetrump0-sketch.github.io/lab-scene-editor/v16/studio/index.html) · [版本说明](v16/README.md)
+
+保留独立器材编辑与自由视角，并接入配准的实验室扫描背景。
+
 ## 使用
 
 打开 GitHub Pages 网站即可使用。建议使用支持 WebGL 且开启硬件加速的桌面浏览器。首次加载需下载三维模型。
