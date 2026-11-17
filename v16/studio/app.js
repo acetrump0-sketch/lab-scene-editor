@@ -1,3 +1,4 @@
+import {createNavigation} from './navigation.js?v=18';
 import {createLaboratoryEnvironment} from './laboratory.js?v=17-scenes-20261117';
 import {createPlacement} from './placement.js';
 import {extraCatalog} from './asset-catalog.js';
@@ -78,9 +79,11 @@ function resize() {
 window.addEventListener('resize', resize);
 function workView() {camera.position.set(0.48,tableY+0.33,1.08); orbit.target.set(0,tableY+0.10,0); orbit.update();}
 function wholeView() {camera.position.set(2.3,1.8,3.0); orbit.target.set(0,0.95,0); orbit.update();}
+const navigation=createNavigation({camera,orbit,transform,canvas:renderer.domElement,onEnter:()=>select(null)});
 workView(); resize();
 renderer.setAnimationLoop(() => {
   if (busy) return;
+  navigation.update();
   if (selected) boxHelper.setFromObject(selected);
   renderer.render(scene,camera);
 });
@@ -196,7 +199,7 @@ let planeDrag=null;
 const dragRay=new THREE.Raycaster();
 function dragPoint(e,plane){const r=renderer.domElement.getBoundingClientRect();dragRay.setFromCamera(new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1),camera);return dragRay.ray.intersectPlane(plane,new THREE.Vector3());}
 renderer.domElement.addEventListener('pointerdown',e=>{
- if(!e.shiftKey||e.button!==0||busy)return;
+ if(navigation.enabled||!e.shiftKey||e.button!==0||busy)return;
  const mode=$('dragPlane').value;const normal=mode==='XZ'?new THREE.Vector3(0,1,0):mode==='XY'?new THREE.Vector3(0,0,1):mode==='YZ'?new THREE.Vector3(1,0,0):camera.getWorldDirection(new THREE.Vector3());
  dragPoint(e,new THREE.Plane());const hit=dragRay.intersectObjects(objects,true)[0];if(!hit)return;
  let o=hit.object;while(o.parent&&!objects.includes(o))o=o.parent;select(o);
@@ -224,7 +227,7 @@ const raycaster=new THREE.Raycaster();
 let down;
 renderer.domElement.addEventListener('pointerdown', e => {down=[e.clientX,e.clientY];});
 renderer.domElement.addEventListener('pointerup', e => {
-  if (busy || transform.axis || !down || Math.hypot(e.clientX-down[0],e.clientY-down[1])>4) return;
+  if (navigation.enabled || busy || transform.axis || !down || Math.hypot(e.clientX-down[0],e.clientY-down[1])>4) return;
   const rect=renderer.domElement.getBoundingClientRect();
   raycaster.setFromCamera(new THREE.Vector2((e.clientX-rect.left)/rect.width*2-1,-(e.clientY-rect.top)/rect.height*2+1),camera);
   const hits=raycaster.intersectObjects(objects,true);
@@ -232,7 +235,7 @@ renderer.domElement.addEventListener('pointerup', e => {
 });
 function setMode(mode) {transform.setMode(mode);document.querySelectorAll('[data-mode]').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));}
 document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
-window.addEventListener('keydown',e=>{if (/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;const mode={w:'translate',e:'rotate',r:'scale'}[e.key.toLowerCase()];if(mode)setMode(mode);});
+window.addEventListener('keydown',e=>{if (navigation.enabled || /INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;const mode={w:'translate',e:'rotate',r:'scale'}[e.key.toLowerCase()];if(mode)setMode(mode);});
 let actionPending=false;
 function run(action) {return async()=>{if(busy||actionPending)return;actionPending=true;try{await action();}catch(e){status('操作失败：'+e.message);console.error(e);}finally{actionPending=false;}};}
 $('add').onclick=run(async()=>{const o=await addObject($('asset').value);if(o.userData.kind==='tips2000')await splitTipBox(o);});
@@ -258,7 +261,7 @@ function serializeObject(object) {
 }
 function snapshot() {
   camera.updateMatrixWorld(true);
-  return {laboratoryEnvironment:window.laboratoryEnvironment?.snapshot(),appearance:appearance.settings(),version:1,units:'meters',axes:'right-handed, Y up',matrixLayout:'column-major',tableY,cabinet:{file:'hood_user_20261104.glb',normalization:cabinetNormalization,assumedWidth:1.3,heightFromSourceAspect:1.6016379,sashFraction,source:'通风橱_双模块_玻璃轨迹修正(1).blend'},objects:objects.map(serializeObject),camera:{position:camera.position.toArray(),target:orbit.target.toArray(),fov:camera.fov},exposure:renderer.toneMappingExposure};
+  return {laboratoryEnvironment:window.laboratoryEnvironment?.snapshot(),appearance:appearance.settings(),version:1,units:'meters',axes:'right-handed, Y up',matrixLayout:'column-major',tableY,cabinet:{file:'hood_user_20261104.glb',normalization:cabinetNormalization,assumedWidth:1.3,heightFromSourceAspect:1.6016379,sashFraction,source:'通风橱_双模块_玻璃轨迹修正(1).blend'},objects:objects.map(serializeObject),camera:{position:camera.position.toArray(),target:orbit.target.toArray(),quaternion:camera.quaternion.toArray(),up:camera.up.toArray(),navigationMode:navigation.enabled?'fly':'orbit',fov:camera.fov},exposure:renderer.toneMappingExposure};
 }
 function download(data,name,type) {
   const url=URL.createObjectURL(new Blob([data],{type}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),60000);
@@ -277,10 +280,12 @@ $('loadFile').onchange=run(async()=>{
   const old=[...objects];
   try {for(const o of data.objects)await addObject(o.kind,o);}catch(e){for(const o of objects.filter(o=>!old.includes(o)))scene.remove(o);objects=old;select(old[0]||null);throw e;}
   old.forEach(o=>scene.remove(o));objects=objects.filter(o=>!old.includes(o));await restoreLegacySlots();select(objects[0]||null);
-  camera.position.fromArray(data.camera.position);orbit.target.fromArray(data.camera.target);camera.fov=data.camera.fov;camera.updateProjectionMatrix();orbit.update();
+  navigation.setEnabled(false);camera.up.fromArray(data.camera.up?.length===3&&data.camera.up.every(Number.isFinite)?data.camera.up:[0,1,0]);camera.position.fromArray(data.camera.position);orbit.target.fromArray(data.camera.target);camera.fov=data.camera.fov;camera.updateProjectionMatrix();orbit.update();
   setSash(Number.isFinite(data.cabinet?.sashFraction)?data.cabinet.sashFraction:.65);
   appearance.apply(data.appearance?.preset!=='original_materials');
   await window.laboratoryEnvironment?.restore(data.laboratoryEnvironment);
+  if(data.camera.quaternion?.length===4&&data.camera.quaternion.every(Number.isFinite)&&Math.hypot(...data.camera.quaternion)>0){camera.quaternion.fromArray(data.camera.quaternion).normalize();navigation.sync();}
+  navigation.setEnabled(data.camera.navigationMode==='fly');
   $('appearance').value=data.appearance?.preset==='original_materials'?'original':'studio';
   renderer.toneMappingExposure=data.exposure; $('exposure').value=data.exposure;$('fov').value=camera.fov;
 });
@@ -336,7 +341,7 @@ async function init(){
   const tips=await addObject('tips2000');tips.position.set(0.15,tableY,-0.04);await splitTipBox(tips);
   const newPipette=await addObject('pipette_stand_metal_tip');newPipette.position.set(.32,tableY,.08);
   objects.forEach(o=>placement.remember(o));workView();select(newPipette);status('就绪 · 已加入新移液枪，独立资产可移动、旋转和缩放');
-  window.labStudio={scene,camera,objects:()=>objects,addObject,splitTipBox,placement,select,snapshot,annotations,exportDataset,cabinet,setSash,ready:false};
+  window.labStudio={scene,camera,navigation,objects:()=>objects,addObject,splitTipBox,placement,select,snapshot,annotations,exportDataset,cabinet,setSash,ready:false};
   window.laboratoryEnvironment.setWorkcellItems(()=>[cabinet,grid,...objects]);
   if(new URLSearchParams(location.search).get('scene')==='scene2')await window.laboratoryEnvironment.setScene('scene2');else window.laboratoryEnvironment.editorView();
   window.labStudio.ready=true;select(null);status('编辑器就绪 · 可选择独立器材拖动，左键环绕、右键平移、滚轮缩放');
@@ -344,3 +349,5 @@ async function init(){
 init().catch(e=>{status('加载失败：'+e.message);console.error(e);});
 
 $('focusCanvas').onclick=()=>{document.body.classList.toggle('canvas-focus');$('focusCanvas').textContent=document.body.classList.contains('canvas-focus')?'显示编辑面板':'展开画布';resize()};
+
+for(const id of ['editorView','workView','wholeView','detailView','focusSelected'])$(id).addEventListener('click',()=>navigation.setEnabled(false),true);
