@@ -6,7 +6,7 @@ export function createAppearance({scene,renderer,key,fill,floor}) {
   const pmrem=new THREE.PMREMGenerator(renderer),room=new RoomEnvironment();
   const environment=pmrem.fromScene(room,0.025);room.dispose();pmrem.dispose();
   const details=new THREE.Group();details.name='studio_environment_v3';scene.add(details);
-  const records=[],cache=new Map();let enabled=true,tableY=.63;
+  const records=[],cache=new Map();let enabled=true,workcellVisible=true,tableY=.63;
   const steel=new THREE.MeshStandardMaterial({color:0xb9c3ca,metalness:.82,roughness:.28,envMapIntensity:.9});
   const paint=new THREE.MeshPhysicalMaterial({color:0xdce2e5,roughness:.32,metalness:.04,clearcoat:.22});
   const glass=new THREE.MeshPhysicalMaterial({color:0xffffff,roughness:.045,metalness:0,transmission:1,thickness:.004,ior:1.5,envMapIntensity:.65,side:THREE.DoubleSide});
@@ -86,10 +86,10 @@ export function createAppearance({scene,renderer,key,fill,floor}) {
     for(let i=-3;i<=3;i++)box('wall_joint_'+i,[.002,2.7,.002],[i*1.2,2.22,-1.155],new THREE.MeshStandardMaterial({color:0xb4c3c9,roughness:.8}));
     apply(enabled);
   }
-  function apply(value){enabled=value;scene.environment=value?environment.texture:null;details.visible=value;renderer.shadowMap.enabled=value;key.castShadow=value;
+  function apply(value){enabled=value;scene.environment=value?environment.texture:null;details.visible=value&&workcellVisible;renderer.shadowMap.enabled=value;key.castShadow=value;
     key.intensity=value?2.1:1.2;key.position.set(-.3,tableY+.55,.42);key.target.position.set(.05,tableY,-.06);fill.position.set(.35,tableY+.27,-.07);fill.intensity=value?.045:.15;
     for(let r of records)r.mesh.material=value?r.material:r.original;scene.background.set(value?0xbdcbd1:0x293b4e);
   }
   function settings(){return {version:5,preset:enabled?'studio_materials':'original_materials',environment:'procedural_RoomEnvironment',shadowMap:'PCFSoft_2048',tableReflection:'planar_1024_blend_0.19',overrides:enabled?['user_cabinet','clear_PS_plate','clear_PP_tips','video_reference_PP_tip_024_angle_shell_038_rim_038','brushed_worktop','glass_sash','task_light','laboratory_wall']:[],note:'Physically based visual approximations, not measured optical properties. Thin transparent parts do not cast opaque shadow-map silhouettes.'};}
-  return {addObject,setupCabinet,apply,settings};
+  return {addObject,setupCabinet,apply,settings,setWorkcellVisible(value){workcellVisible=value;details.visible=enabled&&value;}};
 }

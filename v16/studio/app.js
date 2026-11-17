@@ -1,11 +1,11 @@
-import {createLaboratoryEnvironment} from './laboratory.js';
+import {createLaboratoryEnvironment} from './laboratory.js?v=17-scenes-20261117';
 import {createPlacement} from './placement.js';
 import {extraCatalog} from './asset-catalog.js';
 import * as THREE from 'three';
 import {OrbitControls} from '../../vendor/OrbitControls.js';
 import {TransformControls} from '../../vendor/TransformControls.js';
 import {GLTFLoader} from '../../vendor/GLTFLoader.js';
-import {createAppearance} from './appearance.js?v=5';
+import {createAppearance} from './appearance.js?v=6-scenes';
 import {zipSync, strToU8} from '../../vendor/fflate.js';
 
 const $ = id => document.getElementById(id);
@@ -280,14 +280,14 @@ $('loadFile').onchange=run(async()=>{
   camera.position.fromArray(data.camera.position);orbit.target.fromArray(data.camera.target);camera.fov=data.camera.fov;camera.updateProjectionMatrix();orbit.update();
   setSash(Number.isFinite(data.cabinet?.sashFraction)?data.cabinet.sashFraction:.65);
   appearance.apply(data.appearance?.preset!=='original_materials');
-  window.laboratoryEnvironment?.restore(data.laboratoryEnvironment);
+  await window.laboratoryEnvironment?.restore(data.laboratoryEnvironment);
   $('appearance').value=data.appearance?.preset==='original_materials'?'original':'studio';
   renderer.toneMappingExposure=data.exposure; $('exposure').value=data.exposure;$('fov').value=camera.fov;
 });
 function annotations(width,height) {
   scene.updateMatrixWorld(true);camera.updateMatrixWorld(true);
   const fy=height/(2*Math.tan(THREE.MathUtils.degToRad(camera.fov)/2));
-  return {cabinet:snapshot().cabinet,tableY,appearance:appearance.settings(),exposure:renderer.toneMappingExposure,width,height,K:[[fy,0,width/2],[0,fy,height/2],[0,0,1]],cameraConvention:'OpenGL camera looks -Z, +Y up; matrices column-major',cameraToWorld:camera.matrixWorld.toArray(),worldToCamera:camera.matrixWorldInverse.toArray(),objects:objects.map(o=>{
+  return {laboratoryEnvironment:window.laboratoryEnvironment?.snapshot(),cabinet:snapshot().cabinet,tableY,appearance:appearance.settings(),exposure:renderer.toneMappingExposure,width,height,K:[[fy,0,width/2],[0,fy,height/2],[0,0,1]],cameraConvention:'OpenGL camera looks -Z, +Y up; matrices column-major',cameraToWorld:camera.matrixWorld.toArray(),worldToCamera:camera.matrixWorldInverse.toArray(),objects:objects.map(o=>{
     const b=new THREE.Box3().setFromObject(o);const points=[];
     for(const x of [b.min.x,b.max.x])for(const y of [b.min.y,b.max.y])for(const z of [b.min.z,b.max.z])points.push(new THREE.Vector3(x,y,z));
     const inFront=points.every(p=>p.clone().applyMatrix4(camera.matrixWorldInverse).z<0);
@@ -331,13 +331,15 @@ async function init(){
   if(cabinetClip){cabinetMixer=new THREE.AnimationMixer(cabinet);cabinetMixer.clipAction(cabinetClip).play();setSash(sashFraction);}
   scene.add(cabinet);grid.position.y=tableY+0.002;
   appearance.setupCabinet(cabinet,tableY);
-  window.laboratoryEnvironment = await createLaboratoryEnvironment({scene,camera,orbit,loader,floor,renderer});
+  window.laboratoryEnvironment = await createLaboratoryEnvironment({scene,camera,orbit,loader,floor,renderer,onWorkcellVisibility:visible=>{appearance.setWorkcellVisible(visible);if(!visible)select(null);}});
   const plate=await addObject('plate');plate.position.set(-0.13,tableY,0.05);
   const tips=await addObject('tips2000');tips.position.set(0.15,tableY,-0.04);await splitTipBox(tips);
   const newPipette=await addObject('pipette_stand_metal_tip');newPipette.position.set(.32,tableY,.08);
   objects.forEach(o=>placement.remember(o));workView();select(newPipette);status('就绪 · 已加入新移液枪，独立资产可移动、旋转和缩放');
-  window.labStudio={scene,camera,objects:()=>objects,addObject,splitTipBox,placement,select,snapshot,annotations,exportDataset,cabinet,setSash,ready:true};
-  window.laboratoryEnvironment.setWorkcellItems(()=>[cabinet,grid,...objects]);window.laboratoryEnvironment.editorView();select(null);status('编辑器就绪 · 可选择独立器材拖动，左键环绕、右键平移、滚轮缩放');
+  window.labStudio={scene,camera,objects:()=>objects,addObject,splitTipBox,placement,select,snapshot,annotations,exportDataset,cabinet,setSash,ready:false};
+  window.laboratoryEnvironment.setWorkcellItems(()=>[cabinet,grid,...objects]);
+  if(new URLSearchParams(location.search).get('scene')==='scene2')await window.laboratoryEnvironment.setScene('scene2');else window.laboratoryEnvironment.editorView();
+  window.labStudio.ready=true;select(null);status('编辑器就绪 · 可选择独立器材拖动，左键环绕、右键平移、滚轮缩放');
 }
 init().catch(e=>{status('加载失败：'+e.message);console.error(e);});
 
