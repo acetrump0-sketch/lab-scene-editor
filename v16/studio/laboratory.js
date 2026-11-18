@@ -8,10 +8,11 @@ export async function createLaboratoryEnvironment({scene,camera,orbit,floor,rend
  scene.traverse(o=>{if(/^laboratory_wall|^wall_lower_panel|^wall_trim|^wall_skirting|^wall_joint_/.test(o.name))walls.push(o)});
  async function json(url){const r=await fetch(url);if(!r.ok)throw Error(`${url}: HTTP ${r.status}`);return r.json();}
  const config=await json('../scenes.json');
- const entries=new Map(config.scenes.map(def=>[def.id,{def,root:null,reference:null,cameras:null,load:null,referenceLoad:null,adjust:{x:0,y:0,z:0,yaw:0,scale:1},view:null,scanCamera:def.defaultCamera,scanOnly:def.id==='scene2'}]));
+ const entries=new Map(config.scenes.map(def=>[def.id,{def,root:null,reference:null,clean:null,cameras:null,load:null,referenceLoad:null,adjust:{x:0,y:0,z:0,yaw:0,scale:1},view:null,scanCamera:def.defaultCamera,scanOnly:def.id==='scene2'}]));
  const selector=$('environmentScene');
  for(const {def} of entries.values()){const option=document.createElement('option');option.value=def.id;option.textContent=def.label;selector.append(option);}
  scene.add(new SparkRenderer({renderer,enableLod:false}));camera.far=100;camera.updateProjectionMatrix();
+ let cleanEnabled=true;
  let active=null,getItems=()=>[],request=0;
  const matrixFor=e=>new THREE.Matrix4().compose(new THREE.Vector3(e.adjust.x,e.adjust.y,e.adjust.z),new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),THREE.MathUtils.degToRad(e.adjust.yaw)),new THREE.Vector3().setScalar(e.adjust.scale)).multiply(new THREE.Matrix4().fromArray(e.def.matrix));
  function rememberView(){return {position:camera.position.toArray(),target:orbit.target.toArray(),up:camera.up.toArray(),fov:camera.fov};}
@@ -19,15 +20,18 @@ export async function createLaboratoryEnvironment({scene,camera,orbit,floor,rend
  function visibility(){
   const on=$('showRoom').checked,compare=$('showCeiling').checked;
   for(const e of entries.values()){
-   if(e.root)e.root.visible=e===active&&on&&(!compare||!e.def.reference);
+   const cleaned=cleanEnabled&&e.clean;
+   if(e.root)e.root.visible=e===active&&on&&(!compare||!e.def.reference)&&!cleaned;
+   if(e.clean)e.clean.visible=e===active&&on&&(!compare||!e.def.reference)&&!!cleaned;
    if(e.reference)e.reference.visible=e===active&&on&&compare;
   }
   floor.visible=!on;walls.forEach(o=>o.visible=!on);
   getItems().forEach(o=>{o.visible=o.isGridHelper?(!compare&&$('guides').checked):!compare;});
   onWorkcellVisibility(!compare);
  }
- function updateTransform(){if(!active)return;const m=matrixFor(active);for(const mesh of [active.root,active.reference])if(mesh){mesh.matrix.copy(m);mesh.matrixWorldNeedsUpdate=true;}}
+ function updateTransform(){if(!active)return;const m=matrixFor(active);for(const mesh of [active.root,active.reference,active.clean])if(mesh){mesh.matrix.copy(m);mesh.matrixWorldNeedsUpdate=true;}}
  function syncControls(){
+  $('denoiseScan').disabled=!active.def.cleanedAsset;$('denoiseScan').checked=cleanEnabled;
   selector.value=active.def.id;$('scanCamera').max=active.cameras.length-1;$('scanCamera').value=active.scanCamera;
   for(const key of ['x','y','z','yaw','scale'])$('background_'+key).value=active.adjust[key];
   $('environmentNote').textContent=active.def.registration;
@@ -39,7 +43,8 @@ export async function createLaboratoryEnvironment({scene,camera,orbit,floor,rend
    if(!Array.isArray(e.cameras)||!e.cameras.length)throw Error('扫描机位为空');
    e.root=new SplatMesh({url:e.def.asset,enableLod:false});e.root.name='lab_background_'+e.def.id;e.root.visible=false;e.root.matrixAutoUpdate=false;e.root.matrix.copy(matrixFor(e));scene.add(e.root);
    await e.root.initialized;
-  })().catch(error=>{if(e.root){scene.remove(e.root);e.root.dispose?.();e.root=null;}e.load=null;throw error;});
+   if(e.def.cleanedAsset){e.clean=new SplatMesh({url:e.def.cleanedAsset,enableLod:false});e.clean.name='lab_clean_'+e.def.id;e.clean.visible=false;e.clean.matrixAutoUpdate=false;e.clean.matrix.copy(matrixFor(e));scene.add(e.clean);await e.clean.initialized;}
+  })().catch(error=>{if(e.clean){scene.remove(e.clean);e.clean.dispose?.();e.clean=null;}if(e.root){scene.remove(e.root);e.root.dispose?.();e.root=null;}e.load=null;throw error;});
   await e.load;
  }
  function roomView(){
@@ -79,6 +84,7 @@ export async function createLaboratoryEnvironment({scene,camera,orbit,floor,rend
  $('prevScan').onclick=()=>{$('scanCamera').value=Math.max(0,Number($('scanCamera').value)-10);roomView();};
  $('nextScan').onclick=()=>{if(!active)return;$('scanCamera').value=Math.min(active.cameras.length-1,Number($('scanCamera').value)+10);roomView();};
  $('showRoom').onchange=visibility;
+ $('denoiseScan').onchange=()=>{cleanEnabled=$('denoiseScan').checked;visibility();};
  $('showCeiling').onchange=()=>compare().catch(e=>{$('scanStatus').textContent='扫描对照加载失败：'+e.message;$('showCeiling').checked=false;visibility();});
  for(const key of ['x','y','z','yaw','scale'])$('background_'+key).onchange=()=>{
   if(!active)return;
@@ -89,7 +95,7 @@ export async function createLaboratoryEnvironment({scene,camera,orbit,floor,rend
  $('resetBackground').onclick=()=>{if(!active)return;active.adjust={x:0,y:0,z:0,yaw:0,scale:1};updateTransform();syncControls();};
  function setWorkcellItems(v){getItems=v;for(const id of ['workView','wholeView','detailView']){const old=$(id).onclick;$(id).onclick=e=>{ensureEditing();camera.up.set(0,1,0);camera.fov=45;$('fov').value=45;camera.updateProjectionMatrix();old(e);};}visibility();}
  async function restore(v){
-  v=v||{};
+  v=v||{};cleanEnabled=v.cleanEnabled!==false;
   if(v.backgroundStates)for(const [id,s] of Object.entries(v.backgroundStates)){
    const e=entries.get(id);if(!e)continue;
    const a=s.adjust;
@@ -104,7 +110,7 @@ export async function createLaboratoryEnvironment({scene,camera,orbit,floor,rend
  }
  function snapshot(){
   active.view=rememberView();active.scanCamera=Number($('scanCamera').value)||0;
-  return {version:17,sceneId:active.def.id,scanOnly:$('showCeiling').checked,enabled:$('showRoom').checked,scanCamera:active.scanCamera,asset:active.def.asset,scanToWorkcellColumnMajor:matrixFor(active).toArray(),backgroundStates:Object.fromEntries([...entries].map(([id,e])=>[id,{adjust:{...e.adjust},view:e.view,scanCamera:e.scanCamera,scanOnly:e===active?$('showCeiling').checked:e.scanOnly}])),registration:active.def.registration,backgroundEditableAsIndividualAssets:false,metricScaleVerified:false};
+  return {version:19,cleanEnabled,sceneId:active.def.id,scanOnly:$('showCeiling').checked,enabled:$('showRoom').checked,scanCamera:active.scanCamera,asset:cleanEnabled&&active.clean?active.def.cleanedAsset:active.def.asset,scanToWorkcellColumnMajor:matrixFor(active).toArray(),backgroundStates:Object.fromEntries([...entries].map(([id,e])=>[id,{adjust:{...e.adjust},view:e.view,scanCamera:e.scanCamera,scanOnly:e===active?$('showCeiling').checked:e.scanOnly}])),registration:active.def.registration,backgroundEditableAsIndividualAssets:false,metricScaleVerified:false};
  }
  await setScene(config.defaultScene,{moveCamera:false});
  return {get root(){return active.root;},setScene,editorView,roomView,ensureEditing,setWorkcellItems,restore,snapshot};

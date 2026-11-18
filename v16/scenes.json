@@ -55,7 +55,8 @@
       ],
       "defaultCamera": 0,
       "registration": "按首个扫描机位建立初始摆放，尚未进行工位配准或尺度标定",
-      "source": "https://app.insta360.com/3dspace/detail/GS3DCbce57adbfca94016905b1ae2b5b7aa9d"
+      "source": "https://app.insta360.com/3dspace/detail/GS3DCbce57adbfca94016905b1ae2b5b7aa9d",
+      "cleanedAsset": "../scenes/scene2/environment_denoised.sog"
     }
   ]
 }
