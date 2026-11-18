@@ -8,7 +8,7 @@ export async function createLaboratoryEnvironment({scene,camera,orbit,floor,rend
  scene.traverse(o=>{if(/^laboratory_wall|^wall_lower_panel|^wall_trim|^wall_skirting|^wall_joint_/.test(o.name))walls.push(o)});
  async function json(url){const r=await fetch(url);if(!r.ok)throw Error(`${url}: HTTP ${r.status}`);return r.json();}
  const config=await json('../scenes.json');
- const entries=new Map(config.scenes.map(def=>[def.id,{def,root:null,reference:null,clean:null,cameras:null,load:null,referenceLoad:null,adjust:{x:0,y:0,z:0,yaw:0,scale:1},view:null,scanCamera:def.defaultCamera,scanOnly:def.id==='scene2'}]));
+ const entries=new Map(config.scenes.map(def=>[def.id,{def,root:null,reference:null,cleanReference:null,clean:null,cameras:null,load:null,referenceLoad:null,adjust:{x:0,y:0,z:0,yaw:0,scale:1},view:null,scanCamera:def.defaultCamera,scanOnly:def.id==='scene2'}]));
  const selector=$('environmentScene');
  for(const {def} of entries.values()){const option=document.createElement('option');option.value=def.id;option.textContent=def.label;selector.append(option);}
  scene.add(new SparkRenderer({renderer,enableLod:false}));camera.far=100;camera.updateProjectionMatrix();
@@ -23,13 +23,14 @@ export async function createLaboratoryEnvironment({scene,camera,orbit,floor,rend
    const cleaned=cleanEnabled&&e.clean;
    if(e.root)e.root.visible=e===active&&on&&(!compare||!e.def.reference)&&!cleaned;
    if(e.clean)e.clean.visible=e===active&&on&&(!compare||!e.def.reference)&&!!cleaned;
-   if(e.reference)e.reference.visible=e===active&&on&&compare;
+   if(e.reference)e.reference.visible=e===active&&on&&compare&&!(cleanEnabled&&e.cleanReference);
+   if(e.cleanReference)e.cleanReference.visible=e===active&&on&&compare&&cleanEnabled;
   }
   floor.visible=!on;walls.forEach(o=>o.visible=!on);
   getItems().forEach(o=>{o.visible=o.isGridHelper?(!compare&&$('guides').checked):!compare;});
   onWorkcellVisibility(!compare);
  }
- function updateTransform(){if(!active)return;const m=matrixFor(active);for(const mesh of [active.root,active.reference,active.clean])if(mesh){mesh.matrix.copy(m);mesh.matrixWorldNeedsUpdate=true;}}
+ function updateTransform(){if(!active)return;const m=matrixFor(active);for(const mesh of [active.root,active.reference,active.clean,active.cleanReference])if(mesh){mesh.matrix.copy(m);mesh.matrixWorldNeedsUpdate=true;}}
  function syncControls(){
   $('denoiseScan').disabled=!active.def.cleanedAsset;$('denoiseScan').checked=cleanEnabled;
   selector.value=active.def.id;$('scanCamera').max=active.cameras.length-1;$('scanCamera').value=active.scanCamera;
@@ -71,7 +72,9 @@ export async function createLaboratoryEnvironment({scene,camera,orbit,floor,rend
   const e=active;
   if($('showCeiling').checked&&e.def.reference&&!e.reference){
    $('scanStatus').textContent='加载原始扫描对照…';
-   if(!e.referenceLoad)e.referenceLoad=(async()=>{const mesh=new SplatMesh({url:e.def.reference,enableLod:false});e.reference=mesh;mesh.matrixAutoUpdate=false;mesh.matrix.copy(matrixFor(e));mesh.visible=false;scene.add(mesh);await mesh.initialized;})().catch(err=>{if(e.reference){scene.remove(e.reference);e.reference.dispose?.();e.reference=null;}e.referenceLoad=null;throw err;});
+   if(!e.referenceLoad)e.referenceLoad=(async()=>{const mesh=new SplatMesh({url:e.def.reference,enableLod:false});e.reference=mesh;mesh.matrixAutoUpdate=false;mesh.matrix.copy(matrixFor(e));mesh.visible=false;scene.add(mesh);await mesh.initialized;
+    if(e.def.cleanedReference){const clean=new SplatMesh({url:e.def.cleanedReference,enableLod:false});e.cleanReference=clean;clean.name='lab_clean_reference_'+e.def.id;clean.matrixAutoUpdate=false;clean.matrix.copy(matrixFor(e));clean.visible=false;scene.add(clean);await clean.initialized;}
+   })().catch(err=>{if(e.cleanReference){scene.remove(e.cleanReference);e.cleanReference.dispose?.();e.cleanReference=null;}if(e.reference){scene.remove(e.reference);e.reference.dispose?.();e.reference=null;}e.referenceLoad=null;throw err;});
    await e.referenceLoad;
   }
   if(active===e)syncControls();visibility();
@@ -110,7 +113,7 @@ export async function createLaboratoryEnvironment({scene,camera,orbit,floor,rend
  }
  function snapshot(){
   active.view=rememberView();active.scanCamera=Number($('scanCamera').value)||0;
-  return {version:19,cleanEnabled,sceneId:active.def.id,scanOnly:$('showCeiling').checked,enabled:$('showRoom').checked,scanCamera:active.scanCamera,asset:cleanEnabled&&active.clean?active.def.cleanedAsset:active.def.asset,scanToWorkcellColumnMajor:matrixFor(active).toArray(),backgroundStates:Object.fromEntries([...entries].map(([id,e])=>[id,{adjust:{...e.adjust},view:e.view,scanCamera:e.scanCamera,scanOnly:e===active?$('showCeiling').checked:e.scanOnly}])),registration:active.def.registration,backgroundEditableAsIndividualAssets:false,metricScaleVerified:false};
+  return {version:19,cleanEnabled,sceneId:active.def.id,scanOnly:$('showCeiling').checked,enabled:$('showRoom').checked,scanCamera:active.scanCamera,asset:$('showCeiling').checked&&active.def.reference?(cleanEnabled&&active.cleanReference?active.def.cleanedReference:active.def.reference):(cleanEnabled&&active.clean?active.def.cleanedAsset:active.def.asset),scanToWorkcellColumnMajor:matrixFor(active).toArray(),backgroundStates:Object.fromEntries([...entries].map(([id,e])=>[id,{adjust:{...e.adjust},view:e.view,scanCamera:e.scanCamera,scanOnly:e===active?$('showCeiling').checked:e.scanOnly}])),registration:active.def.registration,backgroundEditableAsIndividualAssets:false,metricScaleVerified:false};
  }
  await setScene(config.defaultScene,{moveCamera:false});
  return {get root(){return active.root;},setScene,editorView,roomView,ensureEditing,setWorkcellItems,restore,snapshot};

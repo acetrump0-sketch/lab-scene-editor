@@ -28,7 +28,9 @@
       ],
       "defaultCamera": 180,
       "registration": "原安全橱粗轮廓配准，米制精度未验证",
-      "source": "https://app.insta360.com/3dspace/detail/GS3DCf9157b10895a4e988dbcb376c5e75d06"
+      "source": "https://app.insta360.com/3dspace/detail/GS3DCf9157b10895a4e988dbcb376c5e75d06",
+      "cleanedAsset": "../scenes/original/environment_denoised.sog",
+      "cleanedReference": "../scenes/original/reference_denoised.sog"
     },
     {
       "id": "scene2",

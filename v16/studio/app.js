@@ -1,5 +1,5 @@
 import {createNavigation} from './navigation.js?v=18';
-import {createLaboratoryEnvironment} from './laboratory.js?v=19-denoise-20261118';
+import {createLaboratoryEnvironment} from './laboratory.js?v=20-both-denoise-20261118';
 import {createPlacement} from './placement.js';
 import {extraCatalog} from './asset-catalog.js';
 import * as THREE from 'three';
