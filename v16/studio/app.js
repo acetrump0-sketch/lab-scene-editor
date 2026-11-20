@@ -1,8 +1,9 @@
+import {createCollisionWorld} from '../../collision.js?v=environment-2';
 const ENVIRONMENT_SCALE = 1.462; // User-requested trial scale; not measured calibration.
-import {robotMetadata,bindRobot,setRobotJoint,robotPanel,rightToolMountMetadata,attachRightPipette,robotToolPose} from '../../robot.js?v=right-tool-1';
+import {robotMetadata,bindRobot,setRobotCollisionGuard,setRobotJoint,robotPanel,rightToolMountMetadata,attachRightPipette,robotToolPose} from '../../robot.js?v=environment-2';
 import {createNavigation} from './navigation.js?v=18';
-import {createLaboratoryEnvironment} from './laboratory.js?v=scale-1462';
-import {createPlacement} from './placement.js?v=robot-1';
+import {createLaboratoryEnvironment} from './laboratory.js?v=environment-2';
+import {createPlacement} from './placement.js?v=environment-2';
 import {extraCatalog} from './asset-catalog.js';
 import * as THREE from 'three';
 import {OrbitControls} from '../../vendor/OrbitControls.js';
@@ -36,7 +37,7 @@ const loader = new GLTFLoader();
 const modelCache=new Map();
 async function loadModel(file){if(!modelCache.has(file))modelCache.set(file,loader.loadAsync('../../assets/'+file).catch(e=>{modelCache.delete(file);throw e;}));return (await modelCache.get(file)).scene.clone(true);}
 const catalog = {
-  wheel_robot:{label:'AR5 轮式双臂机器人',file:'robot/wheel_robot.glb',nativeScale:true,metricBasis:'URDF_meters_unverified',note:'原始 URDF 米制尺寸；双臂各7轴，支持关节限位与姿态保存。机器人不参与器材防穿透、抓取或动力学计算。'},
+  wheel_robot:{label:'AR5 轮式双臂机器人',file:'robot/wheel_robot.glb',nativeScale:true,metricBasis:'URDF_meters_unverified',note:'原始 URDF 米制尺寸；双臂各7轴，支持关节限位与姿态保存。开启防穿透可检查逐连杆和工具的近似碰撞；不计算抓取或动力学。'},
   tips2000:{label:'枪头盒 · 2000 μL × 96（可拆分）',file:'tips_2000_96_no_lid_v5.glb',nativeScale:true,metricBasis:'model_dimensions_unverified',note:'2026-11-05 用户新版：盒体约121×82.8×94 mm，枪头长115.5 mm；保留源模型比例，尺寸未经实物标定。'},
   tips2000_box:{label:'2000 μL 空盒架',file:'tips_2000_96_no_lid_v5.glb',nativeScale:true,part:'box',metricBasis:'model_dimensions_unverified'},
   tips2000_tip:{label:'2000 μL 单支枪头',file:'tips_2000_96_no_lid_v5.glb',nativeScale:true,part:'tip',metricBasis:'model_dimensions_unverified'},
@@ -62,7 +63,7 @@ assetSelect.onchange=showAssetInfo;showAssetInfo();
 let objects = [], selected = null, cabinet, tableY = 0.625, busy = false, nextId = 1;
 let cabinetNormalization, cabinetMixer, cabinetClip;
 let sashFraction=0.65;
-function setSash(value){sashFraction=THREE.MathUtils.clamp(value,0,1);if(cabinetMixer)cabinetMixer.setTime(sashFraction*59/24);$('sash').value=Math.round(sashFraction*100);}
+function setSash(value,{guard=false}={}){const previous=sashFraction,target=THREE.MathUtils.clamp(value,0,1);if(guard&&cabinetMixer){const steps=Math.max(1,Math.ceil(Math.abs(target-previous)/.005));for(let i=1;i<=steps;i++){cabinetMixer.setTime((previous+(target-previous)*i/steps)*59/24);const hit=collisionWorld.check(objects);if(hit){cabinetMixer.setTime(previous*59/24);collisionWorld.showCollision(hit);$('sash').value=Math.round(previous*100);return;}}}sashFraction=target;if(cabinetMixer)cabinetMixer.setTime(sashFraction*59/24);$('sash').value=Math.round(sashFraction*100);}
 const grid = new THREE.GridHelper(1.15, 23, 0x5eaeb6, 0x487382);
 grid.position.y = tableY + 0.002; grid.scale.z = 0.43; scene.add(grid);
 const floor = new THREE.Mesh(new THREE.PlaneGeometry(8,8), new THREE.MeshStandardMaterial({color:0x465362,roughness:1}));
@@ -70,7 +71,9 @@ floor.rotation.x = -Math.PI/2; floor.position.y = -0.002; scene.add(floor);
 const boxHelper = new THREE.BoxHelper(new THREE.Object3D(), 0x8ee3eb);
 boxHelper.visible = false; scene.add(boxHelper);
 const appearance = createAppearance({scene,renderer,key,fill,floor,objects:()=>objects});
-const placement=createPlacement({objects:()=>objects,tableY:()=>tableY,status,enabled:()=>$('physics').checked});
+const collisionWorld=createCollisionWorld({scene,objects:()=>objects,cabinet:()=>cabinet,status,enabled:()=>$('physics').checked});
+$('showCollision').onchange=()=>collisionWorld.setDebug($('showCollision').checked);
+const placement=createPlacement({objects:()=>objects,tableY:()=>tableY,status,externalCollision:collisionWorld.externalCollision,supportHeight:collisionWorld.supportHeight,enabled:()=>$('physics').checked});
 grid.visible=false;
 
 function resize() {
@@ -167,6 +170,7 @@ async function addObject(kind, pose=null) {
     object.userData.id=pose.id; object.userData.label=pose.label; nextId=Math.max(nextId,pose.id+1);
   } else if(robotMeta){object.position.set(0,0,1.15);object.rotation.y=Math.PI/2;}
   else object.position.set((objects.length%3-1)*0.22,tableY,0.04);
+  if(robotMeta)setRobotCollisionGuard(object,collisionWorld.moveJoint);
   appearance.addObject(object,kind);
   scene.add(object); objects.push(object); placement.remember(object);select(object);window.laboratoryEnvironment?.ensureEditing();
   if(!pose&&$('physics').checked&&placement.collision([object])){
@@ -255,7 +259,7 @@ $('duplicate').onclick=run(async()=>{if(!selected)return;const data=serializeObj
 $('remove').onclick=()=>{if(!selected||busy||actionPending)return;for(const tip of placement.family(selected).slice(1))delete tip.userData.mount;scene.remove(selected);objects=objects.filter(o=>o!==selected);select(null);};
 $('drop').onclick=()=>{if(selected)drop(selected);};
 $('guides').onchange=()=>{grid.visible=$('guides').checked;boxHelper.visible=!!selected&&grid.visible;};
-$('sash').oninput=()=>setSash(Number($('sash').value)/100);
+$('sash').oninput=()=>setSash(Number($('sash').value)/100,{guard:true});
 $('appearance').onchange=()=>appearance.apply($('appearance').value==='studio');
 $('cleanView').onclick=()=>{select(null);grid.visible=false;$('guides').checked=false;};
 $('focusSelected').onclick=()=>{if(!selected)return;window.laboratoryEnvironment?.ensureEditing();const b=new THREE.Box3().setFromObject(selected),c=b.getCenter(new THREE.Vector3()),d=Math.max(b.getSize(new THREE.Vector3()).length(),.04);orbit.target.copy(c);camera.position.copy(c).add(new THREE.Vector3(.8,.6,1).normalize().multiplyScalar(d*1.7));orbit.update();};
@@ -270,7 +274,7 @@ function serializeObject(object) {
 }
 function snapshot() {
   camera.updateMatrixWorld(true);
-  return {laboratoryEnvironment:window.laboratoryEnvironment?.snapshot(),appearance:appearance.settings(),version:1,units:'meters',axes:'right-handed, Y up',matrixLayout:'column-major',tableY,cabinet:{file:'hood_user_20261104.glb',normalization:cabinetNormalization,assumedWidth:1.3*ENVIRONMENT_SCALE,heightFromSourceAspect:1.6016379*ENVIRONMENT_SCALE,trialScale:ENVIRONMENT_SCALE,metricScaleVerified:false,sashFraction,source:'通风橱_双模块_玻璃轨迹修正(1).blend'},objects:objects.map(serializeObject),camera:{position:camera.position.toArray(),target:orbit.target.toArray(),quaternion:camera.quaternion.toArray(),up:camera.up.toArray(),navigationMode:navigation.enabled?'fly':'orbit',fov:camera.fov},exposure:renderer.toneMappingExposure};
+  return {collision:{...collisionWorld.snapshot(),show:$('showCollision').checked},laboratoryEnvironment:window.laboratoryEnvironment?.snapshot(),appearance:appearance.settings(),version:1,units:'meters',axes:'right-handed, Y up',matrixLayout:'column-major',tableY,cabinet:{file:'hood_user_20261104.glb',normalization:cabinetNormalization,assumedWidth:1.3*ENVIRONMENT_SCALE,heightFromSourceAspect:1.6016379*ENVIRONMENT_SCALE,trialScale:ENVIRONMENT_SCALE,metricScaleVerified:false,sashFraction,source:'通风橱_双模块_玻璃轨迹修正(1).blend'},objects:objects.map(serializeObject),camera:{position:camera.position.toArray(),target:orbit.target.toArray(),quaternion:camera.quaternion.toArray(),up:camera.up.toArray(),navigationMode:navigation.enabled?'fly':'orbit',fov:camera.fov},exposure:renderer.toneMappingExposure};
 }
 function download(data,name,type) {
   const url=URL.createObjectURL(new Blob([data],{type}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),60000);
@@ -295,6 +299,7 @@ $('loadFile').onchange=run(async()=>{
   setSash(Number.isFinite(data.cabinet?.sashFraction)?data.cabinet.sashFraction:.65);
   appearance.apply(data.appearance?.preset!=='original_materials');
   await window.laboratoryEnvironment?.restore(data.laboratoryEnvironment);
+  if(data.collision){$('physics').checked=data.collision.enabled!==false;$('showCollision').checked=data.collision.show===true;collisionWorld.setDebug($('showCollision').checked);}
   if(data.camera.quaternion?.length===4&&data.camera.quaternion.every(Number.isFinite)&&Math.hypot(...data.camera.quaternion)>0){camera.quaternion.fromArray(data.camera.quaternion).normalize();navigation.sync();}
   navigation.setEnabled(data.camera.navigationMode==='fly');
   $('appearance').value=data.appearance?.preset==='original_materials'?'original':'studio';
@@ -316,9 +321,9 @@ async function exportDataset(count) {
   const lockedControls=[...document.querySelectorAll('button,input,select')].map(element=>({element,disabled:element.disabled}));
   lockedControls.forEach(({element})=>element.disabled=true);
   const initial=snapshot();const files={};const width=Number($('resolution').value),height=width*3/4;
-  const saved={position:camera.position.clone(),quaternion:camera.quaternion.clone(),aspect:camera.aspect,grid:grid.visible,box:boxHelper.visible,controls:transform.visible};
+  const saved={position:camera.position.clone(),quaternion:camera.quaternion.clone(),aspect:camera.aspect,grid:grid.visible,box:boxHelper.visible,controls:transform.visible,collision:collisionWorld.debug.visible,warning:collisionWorld.warning.visible};
   try {
-    transform.visible=false;grid.visible=false;boxHelper.visible=false;renderer.setPixelRatio(1);renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix();
+    collisionWorld.debug.visible=false;collisionWorld.warning.visible=false;transform.visible=false;grid.visible=false;boxHelper.visible=false;renderer.setPixelRatio(1);renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix();
     for(let i=0;i<count;i++){
       if(count>1){const angle=-0.48+0.96*i/(count-1);camera.position.set(Math.sin(angle)*0.95,tableY+0.4,Math.cos(angle)*0.95);camera.lookAt(0,tableY+0.08,0);}
       renderer.render(scene,camera);
@@ -332,7 +337,7 @@ async function exportDataset(count) {
     download(zipSync(files,{level:0}),'lab_dataset_'+Date.now()+'.zip','application/zip');
     $('progress').textContent=`完成 ${count} 张图像及对应标注，已生成 ZIP`;
   } finally {
-    camera.position.copy(saved.position);camera.quaternion.copy(saved.quaternion);camera.aspect=saved.aspect;camera.updateProjectionMatrix();grid.visible=saved.grid;boxHelper.visible=saved.box;transform.visible=saved.controls;renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));busy=false;orbit.enabled=true;resize();
+    collisionWorld.debug.visible=saved.collision;collisionWorld.warning.visible=saved.warning;camera.position.copy(saved.position);camera.quaternion.copy(saved.quaternion);camera.aspect=saved.aspect;camera.updateProjectionMatrix();grid.visible=saved.grid;boxHelper.visible=saved.box;transform.visible=saved.controls;renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));busy=false;orbit.enabled=true;resize();
     lockedControls.forEach(({element,disabled})=>element.disabled=disabled);
   }
 }
@@ -347,17 +352,20 @@ async function init(){
   if(cabinetClip){cabinetMixer=new THREE.AnimationMixer(gltf.scene);cabinetMixer.clipAction(cabinetClip).play();setSash(sashFraction);}
   scene.add(cabinet);grid.position.y=tableY+0.002;grid.scale.x=ENVIRONMENT_SCALE;grid.scale.z=.43*ENVIRONMENT_SCALE;
   appearance.setupCabinet(cabinet,0.62993,ENVIRONMENT_SCALE);
-  window.laboratoryEnvironment = await createLaboratoryEnvironment({scene,camera,orbit,loader,floor,renderer,onWorkcellVisibility:visible=>{appearance.setWorkcellVisible(visible);if(!visible)select(null);}});
+  window.laboratoryEnvironment = await createLaboratoryEnvironment({scene,camera,orbit,loader,floor,renderer,onCollisionEnvironment:(data,matrix)=>{collisionWorld.setEnvironment(data,matrix);$('collisionInfo').textContent=data?`场景一：${data.proxies.length} 组扫描平面候选；地面采用 Y=0，柜体使用网格，机器人使用逐连杆包围体。`:'场景二尚无扫描碰撞层；仅检查机器人、独立器材、柜体和 Y=0 地面。';const list=$('collisionStructures');list.replaceChildren();for(const p of data?.proxies||[]){const option=document.createElement('option');option.value=p.id;option.textContent=p.label;list.append(option);}},onWorkcellVisibility:visible=>{appearance.setWorkcellVisible(visible);if(!visible)select(null);}});
+  collisionWorld.rebuildCabinet();
   const plate=await addObject('plate');plate.position.set(-0.13*ENVIRONMENT_SCALE,tableY,0.05*ENVIRONMENT_SCALE);
   const tips=await addObject('tips2000');tips.position.set(0.15*ENVIRONMENT_SCALE,tableY,-0.04*ENVIRONMENT_SCALE);await splitTipBox(tips);
   const robot=await addObject('wheel_robot');objects.forEach(o=>placement.remember(o));robotView();select(robot);status('就绪 · 最新移液枪已固定连接机器人右臂');
-  window.labStudio={scene,camera,navigation,objects:()=>objects,addObject,splitTipBox,placement,select,setRobotJoint,robotView,snapshot,annotations,exportDataset,cabinet,setSash,ready:false};
+  window.labStudio={scene,camera,navigation,objects:()=>objects,addObject,splitTipBox,placement,collisionWorld,select,setRobotJoint,robotView,snapshot,annotations,exportDataset,cabinet,setSash,ready:false};
   window.laboratoryEnvironment.setWorkcellItems(()=>[cabinet,grid,...objects]);
   if(new URLSearchParams(location.search).get('scene')==='scene2')await window.laboratoryEnvironment.setScene('scene2');else {window.laboratoryEnvironment.ensureEditing();robotView();}
-  window.labStudio.ready=true;if(!new URLSearchParams(location.search).get('scene'))select(robot);status('编辑器就绪 · AR5 双臂机器人已加入，右侧可调整关节');
+  window.labStudio.ready=true;if(!new URLSearchParams(location.search).get('scene'))select(robot);collisionWorld.showCollision(null);status('编辑器就绪 · 增强去噪与近似防穿透已开启');
 }
 init().catch(e=>{status('加载失败：'+e.message);console.error(e);});
 
 $('focusCanvas').onclick=()=>{document.body.classList.toggle('canvas-focus');$('focusCanvas').textContent=document.body.classList.contains('canvas-focus')?'显示编辑面板':'展开画布';resize()};
 
 for(const id of ['focusRightTool','robotView','editorView','workView','wholeView','detailView','focusSelected'])$(id).addEventListener('click',()=>navigation.setEnabled(false),true);
+
+$('focusCollision').onclick=()=>{const entries=collisionWorld.getEnvironment().filter(e=>e.id===$('collisionStructures').value);if(!entries.length)return;collisionWorld.setDebug(true);$('showCollision').checked=true;const center=new THREE.Vector3();entries.forEach(e=>center.add(e.obb.center));center.divideScalar(entries.length);orbit.target.copy(center);camera.position.copy(center).add(new THREE.Vector3(2,1.5,2));orbit.update();};

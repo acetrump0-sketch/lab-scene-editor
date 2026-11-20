@@ -1,0 +1,50 @@
+[
+  {
+    "scene": "original",
+    "total": 1000000,
+    "candidateCount": 20325,
+    "fraction": 0.020325,
+    "rules": {
+      "diffuseVolume": 6144,
+      "sparseLowOpacity": 17978,
+      "extremeSparse": 1565
+    },
+    "outputs": [
+      {
+        "source": "v16/reference.sog",
+        "output": "v16/scenes/original/reference_clean_v2.sog",
+        "sourceSha256": "dfd731390ba1d9e8b9fdd47f1c7700b37c6c71e16e29afdb4c86b6c9d5e44321",
+        "newlyHidden": 20325
+      },
+      {
+        "source": "v16/environment_without_scanned_cabinet.sog",
+        "output": "v16/scenes/original/environment_clean_v2.sog",
+        "sourceSha256": "43d287d79f661cbb1fa4ffd6ba9c0df577bf8c98972b00623d1751545a0715f9",
+        "newlyHidden": 20314
+      }
+    ],
+    "method": "Opacity-only masking; requires opacity and spatial evidence. Thin surfaces protected from diffuse rule. Surviving geometry, covariance, colors and SH byte-identical.",
+    "limitations": "Not semantic deletion. Dense ghosts may remain. Original scans preserved."
+  },
+  {
+    "scene": "scene2",
+    "total": 674162,
+    "candidateCount": 14136,
+    "fraction": 0.02096825392116435,
+    "rules": {
+      "diffuseVolume": 6707,
+      "sparseLowOpacity": 11344,
+      "extremeSparse": 1077
+    },
+    "outputs": [
+      {
+        "source": "v16/scenes/scene2/environment.sog",
+        "output": "v16/scenes/scene2/environment_clean_v2.sog",
+        "sourceSha256": "0b3831576480df63195d5f3d1fab1221d99b175b7fe8eafe6d30cea78534e685",
+        "newlyHidden": 14136
+      }
+    ],
+    "method": "Opacity-only masking; requires opacity and spatial evidence. Thin surfaces protected from diffuse rule. Surviving geometry, covariance, colors and SH byte-identical.",
+    "limitations": "Not semantic deletion. Dense ghosts may remain. Original scans preserved."
+  }
+]

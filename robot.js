@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-const rigs=new WeakMap();
+const rigs=new WeakMap(),guards=new WeakMap();
+export function setRobotCollisionGuard(object,guard){guards.set(object,guard);}
 let metadata;
 export async function robotMetadata(){
  if(!metadata){const response=await fetch(new URL('./assets/robot/robot.json',import.meta.url));if(!response.ok)throw Error('机器人关节文件加载失败');metadata=await response.json();}
@@ -17,8 +18,8 @@ export function bindRobot(object,meta,angles={}){
 export function setRobotJoint(object,name,value){
  const joint=rigs.get(object)?.find(j=>j.name===name);if(!joint||!Number.isFinite(value))throw Error('无效的机器人关节角');
  const v=joint.type==='continuous'?value:THREE.MathUtils.clamp(value,joint.limit.lower,joint.limit.upper);
- joint.node.quaternion.copy(joint.origin).multiply(new THREE.Quaternion().setFromAxisAngle(joint.axis,v));
- object.userData.jointAngles[name]=v;object.updateMatrixWorld(true);return v;
+ const apply=angle=>{joint.node.quaternion.copy(joint.origin).multiply(new THREE.Quaternion().setFromAxisAngle(joint.axis,angle));object.userData.jointAngles[name]=angle;object.updateMatrixWorld(true);};
+ const guard=guards.get(object);if(guard)return guard({object,from:object.userData.jointAngles[name]??0,to:v,apply});apply(v);return v;
 }
 export function robotJoints(object){return rigs.get(object)||[];}
 export function robotPanel(object,onChange){

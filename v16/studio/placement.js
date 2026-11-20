@@ -1,18 +1,18 @@
 import * as THREE from 'three';
-import {OBB} from '../../vendor/OBB.js';
-export function createPlacement({objects,tableY,status,enabled}){
+import {boxOBB} from '../../collision.js?v=environment-2';
+export function createPlacement({objects,tableY,status,enabled,externalCollision=()=>null,supportHeight=()=>tableY()}){
  const saved=new WeakMap(),bounds=new WeakMap();
  const pose=o=>({p:o.position.clone(),q:o.quaternion.clone(),s:o.scale.clone()});
  const restore=(o,p)=>{o.position.copy(p.p);o.quaternion.copy(p.q);o.scale.copy(p.s);o.updateMatrixWorld(true);};
  function remember(o){saved.set(o,pose(o));}
  function localBounds(o){if(!bounds.has(o)){o.updateMatrixWorld(true);const inv=o.matrixWorld.clone().invert(),b=new THREE.Box3();o.traverse(n=>{if(n.isMesh){n.geometry.computeBoundingBox();b.union(n.geometry.boundingBox.clone().applyMatrix4(inv.clone().multiply(n.matrixWorld)));}});bounds.set(o,b);}return bounds.get(o);}
- function obb(o){o.updateMatrixWorld(true);const b=new OBB().fromBox3(localBounds(o));b.halfSize.addScalar(-.0001).max(new THREE.Vector3(.00001,.00001,.00001));return b.applyMatrix4(o.matrixWorld);}
- function family(o){return [o,...objects().filter(t=>t.userData.mount?.rackId===o.userData.id)];}
+ function obb(o){o.updateMatrixWorld(true);const b=boxOBB(localBounds(o),o.matrixWorld);b.halfSize.addScalar(-.0001).max(new THREE.Vector3(.00001,.00001,.00001));return b;}
+ function family(o){return [o,...objects().filter(t=>t.userData.mount&&t.userData.mount.rackId===o.userData.id)];}
  function carry(o){o.updateMatrixWorld(true);for(const t of family(o).slice(1)){o.matrixWorld.clone().multiply(new THREE.Matrix4().fromArray(t.userData.mount.localMatrix)).decompose(t.position,t.quaternion,t.scale);t.updateMatrixWorld(true);}}
- function related(a,b){return a.userData.mount?.rackId===b.userData.id||b.userData.mount?.rackId===a.userData.id;}
+ function related(a,b){return (a.userData.mount&&a.userData.mount.rackId===b.userData.id)||(b.userData.mount&&b.userData.mount.rackId===a.userData.id);}
  function collision(moving){const set=new Set(moving);const fixed=objects().filter(o=>!set.has(o)&&o.userData.kind!=='wheel_robot');const fixedBoxes=fixed.map(o=>[o,obb(o)]);
-  for(const a of moving){if(a.userData.kind==='wheel_robot')continue;const world=localBounds(a).clone().applyMatrix4(a.matrixWorld);if(world.min.y<tableY()-.0002)return '不能穿过台面';const ab=obb(a);for(const [b,bb] of fixedBoxes){if(related(a,b))continue;if(ab.intersectsOBB(bb,1e-9))return '与「'+b.userData.label+'」发生碰撞';}}
-  return null;
+  for(const a of moving){if(a.userData.kind==='wheel_robot')continue;const world=localBounds(a).clone().applyMatrix4(a.matrixWorld);if(world.min.y<-.003)return '不能穿过地面';const ab=obb(a);for(const [b,bb] of fixedBoxes){if(related(a,b))continue;if(ab.intersectsOBB(bb,1e-9))return '与「'+b.userData.label+'」发生碰撞';}}
+  return externalCollision(moving);
  }
  function apply(o,{allowMounted=false}={}){
   const old=saved.get(o)||pose(o),target=pose(o),group=family(o),previous=group.map(x=>[x,saved.get(x)||pose(x)]);
@@ -36,6 +36,6 @@ export function createPlacement({objects,tableY,status,enabled}){
   if(!apply(tip,{allowMounted:true})){delete tip.userData.mount;restore(tip,old);remember(tip);return false;}
   status('已沿孔轴插入空孔 '+best.slot.replace('Tip_2000uL_',''));return true;
  }
- function settle(o){if(o.userData.kind==='wheel_robot'){o.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(o);o.position.y-=b.min.y;remember(o);status('机器人已落到地面');return;}if(o.userData.mount){status('盒内枪头请先取出');return;}remember(o);o.updateMatrixWorld(true);const b=localBounds(o).clone().applyMatrix4(o.matrixWorld);let height=tableY();for(const other of objects()){if(family(o).includes(other))continue;other.updateMatrixWorld(true);const bb=localBounds(other).clone().applyMatrix4(other.matrixWorld);if(bb.max.y<=b.min.y+.0002&&bb.max.x>b.min.x&&bb.min.x<b.max.x&&bb.max.z>b.min.z&&bb.min.z<b.max.z)height=Math.max(height,bb.max.y);}o.position.y+=height-b.min.y;apply(o);}
+ function settle(o){if(o.userData.kind==='wheel_robot'){remember(o);o.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(o);o.position.y-=b.min.y;apply(o);return;}if(o.userData.mount){status('盒内枪头请先取出');return;}remember(o);o.updateMatrixWorld(true);const b=localBounds(o).clone().applyMatrix4(o.matrixWorld);let height=supportHeight(b);for(const other of objects()){if(family(o).includes(other))continue;other.updateMatrixWorld(true);const bb=localBounds(other).clone().applyMatrix4(other.matrixWorld);if(bb.max.y<=b.min.y+.0002&&bb.max.x>b.min.x&&bb.min.x<b.max.x&&bb.max.z>b.min.z&&bb.min.z<b.max.z)height=Math.max(height,bb.max.y);}o.position.y+=height-b.min.y;apply(o);}
  return {remember,apply,bind,extract,insert,settle,carry,collision,family};
 }

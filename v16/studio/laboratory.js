@@ -3,11 +3,11 @@ import {SparkRenderer,SplatMesh} from '../vendor/spark.module.js';
 
 // Each scan has its own coordinate transform and camera history. Editable
 // workcell meshes remain in world coordinates when the background changes.
-export async function createLaboratoryEnvironment({scene,camera,orbit,floor,renderer,onWorkcellVisibility=()=>{}}) {
+export async function createLaboratoryEnvironment({scene,camera,orbit,floor,renderer,onWorkcellVisibility=()=>{},onCollisionEnvironment=()=>{}}) {
  const $=id=>document.getElementById(id),walls=[];
  scene.traverse(o=>{if(/^laboratory_wall|^wall_lower_panel|^wall_trim|^wall_skirting|^wall_joint_/.test(o.name))walls.push(o)});
  async function json(url){const r=await fetch(url);if(!r.ok)throw Error(`${url}: HTTP ${r.status}`);return r.json();}
- const config=await json('../scenes.json?v=scale-1462');
+ const config=await json('../scenes.json?v=environment-2');
  const entries=new Map(config.scenes.map(def=>[def.id,{def,root:null,reference:null,cleanReference:null,clean:null,cameras:null,load:null,referenceLoad:null,adjust:{x:0,y:0,z:0,yaw:0,scale:1},view:null,scanCamera:def.defaultCamera,scanOnly:def.id==='scene2'}]));
  const selector=$('environmentScene');
  for(const {def} of entries.values()){const option=document.createElement('option');option.value=def.id;option.textContent=def.label;selector.append(option);}
@@ -30,17 +30,18 @@ export async function createLaboratoryEnvironment({scene,camera,orbit,floor,rend
   getItems().forEach(o=>{o.visible=o.isGridHelper?(!compare&&$('guides').checked):!compare;});
   onWorkcellVisibility(!compare);
  }
- function updateTransform(){if(!active)return;const m=matrixFor(active);for(const mesh of [active.root,active.reference,active.clean,active.cleanReference])if(mesh){mesh.matrix.copy(m);mesh.matrixWorldNeedsUpdate=true;}}
+ function updateTransform(){if(!active)return;const m=matrixFor(active);for(const mesh of [active.root,active.reference,active.clean,active.cleanReference])if(mesh){mesh.matrix.copy(m);mesh.matrixWorldNeedsUpdate=true;}onCollisionEnvironment(active.collision||null,m);}
  function syncControls(){
   $('denoiseScan').disabled=!active.def.cleanedAsset;$('denoiseScan').checked=cleanEnabled;
   selector.value=active.def.id;$('scanCamera').max=active.cameras.length-1;$('scanCamera').value=active.scanCamera;
   for(const key of ['x','y','z','yaw','scale'])$('background_'+key).value=active.adjust[key];
-  $('environmentNote').textContent=active.def.registration;
+  $('environmentNote').textContent=active.def.registration+`；增强去噪隐藏 ${active.def.cleanupHiddenCandidates||0} 个疑似杂点，原始扫描可对照。`;
   $('scanStatus').textContent=`${active.def.label} · ${active.cameras.length} 个机位 · 独立资产可编辑`;
  }
  async function load(e){
   if(!e.load)e.load=(async()=>{
    e.cameras=await json(e.def.cameras);
+   e.collision=e.def.collisionAsset?await json(e.def.collisionAsset):null;
    if(!Array.isArray(e.cameras)||!e.cameras.length)throw Error('扫描机位为空');
    e.root=new SplatMesh({url:e.def.asset,enableLod:false});e.root.name='lab_background_'+e.def.id;e.root.visible=false;e.root.matrixAutoUpdate=false;e.root.matrix.copy(matrixFor(e));scene.add(e.root);
    await e.root.initialized;
@@ -113,7 +114,7 @@ export async function createLaboratoryEnvironment({scene,camera,orbit,floor,rend
  }
  function snapshot(){
   active.view=rememberView();active.scanCamera=Number($('scanCamera').value)||0;
-  return {version:19,cleanEnabled,sceneId:active.def.id,scanOnly:$('showCeiling').checked,enabled:$('showRoom').checked,scanCamera:active.scanCamera,asset:$('showCeiling').checked&&active.def.reference?(cleanEnabled&&active.cleanReference?active.def.cleanedReference:active.def.reference):(cleanEnabled&&active.clean?active.def.cleanedAsset:active.def.asset),scanToWorkcellColumnMajor:matrixFor(active).toArray(),backgroundStates:Object.fromEntries([...entries].map(([id,e])=>[id,{adjust:{...e.adjust},view:e.view,scanCamera:e.scanCamera,scanOnly:e===active?$('showCeiling').checked:e.scanOnly}])),registration:active.def.registration,backgroundEditableAsIndividualAssets:false,metricScaleVerified:false};
+  return {version:20,cleanEnabled,sceneId:active.def.id,scanOnly:$('showCeiling').checked,enabled:$('showRoom').checked,scanCamera:active.scanCamera,asset:$('showCeiling').checked&&active.def.reference?(cleanEnabled&&active.cleanReference?active.def.cleanedReference:active.def.reference):(cleanEnabled&&active.clean?active.def.cleanedAsset:active.def.asset),scanToWorkcellColumnMajor:matrixFor(active).toArray(),backgroundStates:Object.fromEntries([...entries].map(([id,e])=>[id,{adjust:{...e.adjust},view:e.view,scanCamera:e.scanCamera,scanOnly:e===active?$('showCeiling').checked:e.scanOnly}])),registration:active.def.registration,backgroundEditableAsIndividualAssets:false,metricScaleVerified:false};
  }
  await setScene(config.defaultScene,{moveCamera:false});
  return {get root(){return active.root;},setScene,editorView,roomView,ensureEditing,setWorkcellItems,restore,snapshot};

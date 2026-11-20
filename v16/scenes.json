@@ -29,8 +29,8 @@
       "defaultCamera": 180,
       "registration": "原安全橱粗轮廓配准；按用户要求试放大1.462倍，未实测标定",
       "source": "https://app.insta360.com/3dspace/detail/GS3DCf9157b10895a4e988dbcb376c5e75d06",
-      "cleanedAsset": "../scenes/original/environment_denoised.sog",
-      "cleanedReference": "../scenes/original/reference_denoised.sog",
+      "cleanedAsset": "../scenes/original/environment_clean_v2.sog",
+      "cleanedReference": "../scenes/original/reference_clean_v2.sog",
       "previousMatrixBeforeTrialScale": [
         -0.0,
         -0.0,
@@ -50,7 +50,9 @@
         1.0
       ],
       "trialScale": 1.462,
-      "metricScaleVerified": false
+      "metricScaleVerified": false,
+      "collisionAsset": "../scenes/original/collision_surfaces.json",
+      "cleanupHiddenCandidates": 20325
     },
     {
       "id": "scene2",
@@ -78,7 +80,8 @@
       "defaultCamera": 0,
       "registration": "按首个扫描机位建立初始摆放，尚未进行工位配准或尺度标定",
       "source": "https://app.insta360.com/3dspace/detail/GS3DCbce57adbfca94016905b1ae2b5b7aa9d",
-      "cleanedAsset": "../scenes/scene2/environment_denoised.sog"
+      "cleanedAsset": "../scenes/scene2/environment_clean_v2.sog",
+      "cleanupHiddenCandidates": 14136
     }
   ]
 }
