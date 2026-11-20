@@ -1,0 +1,77 @@
+{
+  "version": 2,
+  "video": "robot_tip_pickup_gaussian.mp4",
+  "gaussianAsset": "v16/scenes/original/environment_clean_v2.sog",
+  "gaussianSha256": "e37111c21520a010522bd35ccc52eb18cbb6794f01768ccc6901a96f6a958a44",
+  "scanToWorldColumnMajor": [
+    -0.0,
+    -0.0,
+    -0.6231475409836067,
+    0.0,
+    -0.0,
+    -0.6231475409836067,
+    -0.0,
+    0.0,
+    -0.6231475409836067,
+    -0.0,
+    -0.0,
+    0.0,
+    -0.3583098360655738,
+    1.5890262295081967,
+    0.5140967213114755,
+    1.0
+  ],
+  "cameras": [
+    {
+      "position": [
+        2.1,
+        1.9,
+        3.3
+      ],
+      "target": [
+        0,
+        1.15,
+        0.2
+      ],
+      "fov": 50
+    },
+    {
+      "position": [
+        0.62,
+        1.3,
+        0.95
+      ],
+      "target": [
+        0.2,
+        1.12,
+        0.23
+      ],
+      "fov": 27
+    },
+    {
+      "position": [
+        1.6,
+        1.8,
+        2.6
+      ],
+      "target": [
+        0.1,
+        1.15,
+        0.35
+      ],
+      "fov": 47
+    }
+  ],
+  "projection": "perspective EWA Gaussian; covariance from SOG scales + smallest-three quaternion; SH degree 3",
+  "cutoffStandardDeviations": 3,
+  "opacityThreshold": 0.00392156862745098,
+  "composition": "front-to-back Gaussian accumulation with per-pixel mesh Z and alpha insertion; not a flat backdrop",
+  "meshDepthVerification": "EEVEE Z pass agrees with scene ray-cast axial depth within 0.4 mm at sampled opaque pixels",
+  "occlusionTests": "synthetic front Gaussian / back Gaussian against opaque mesh passed",
+  "motion": "right_arm_tip_pickup.json; unchanged 301 poses",
+  "durationSeconds": 12,
+  "fps": 25,
+  "width": 1280,
+  "height": 720,
+  "limitations": "Offline rendering; not a browser screen recording. Gaussian center-depth sorting and a single mesh depth/alpha layer approximate transparent overlaps; no contact-force validation."
+}

@@ -20,9 +20,9 @@ export function createPickupDemo({scene,camera,orbit,loadModel,objects,setSash,g
     scene.updateMatrixWorld(true);if(time>=motion.attachTime&&!attached){tips.forEach(t=>holder.attach(t));attached=true;}
     // Y-up equivalents of the offline-rendered camera cuts.
     let pos,target,fov;
-    if(time<4){pos=[3.4,2.5,4.3];target=[0,1.12,.35];fov=32;}
+    if(time<4){pos=[2.1,1.9,3.3];target=[0,1.15,.2];fov=50;}
     else if(time<10.5){pos=[.62,1.30,.95];target=[.20,1.12,.23];fov=27;}
-    else{pos=[1.65,1.75,2.25];target=[.10,1.22,.35];fov=39;}
+    else{pos=[1.6,1.8,2.6];target=[.10,1.15,.35];fov=47;}
     camera.position.fromArray(pos);orbit.target.fromArray(target);camera.fov=fov;camera.updateProjectionMatrix();camera.lookAt(orbit.target);
     status(time<5?'上枪头演示 · 右臂对准 A12':time<7?'上枪头演示 · 竖直下压套接':time<8?'上枪头演示 · 接口就位':'上枪头演示 · 枪头随右臂抬起');
    };

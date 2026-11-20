@@ -1,4 +1,4 @@
-import {createPickupDemo} from './pickup-demo.js?v=1';
+import {createPickupDemo} from './pickup-demo.js?v=gaussian-2';
 import {createCollisionWorld} from '../../collision.js?v=environment-2';
 const ENVIRONMENT_SCALE = 1.462; // User-requested trial scale; not measured calibration.
 import {robotMetadata,bindRobot,setRobotCollisionGuard,setRobotJoint,robotPanel,rightToolMountMetadata,attachRightPipette,robotToolPose} from '../../robot.js?v=environment-2';
