@@ -1,4 +1,5 @@
 export const extraCatalog = {
+  "new_tipbox": {"label":"新枪头盒 · 黄色6.5mm凸台","file":"tipbox_detail_6p5mm.glb","nativeScale":true,"assetVersion":"20261114","metricBasis":"source_model_meters_unverified","note":"用户11月14日新版：白色盒身、黄色6.5mm凸台、96支黑色枪头及滤芯。保留源文件米制比例，接口配合尚未实测。"},
   "pipette_stand_metal_tip": {
   "label": "新移液枪 · 绿色支架与金属末端",
   "file": "pipette_stand_metal_tip.glb",

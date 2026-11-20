@@ -1,0 +1,13 @@
+{
+  "tipRimY": 1.0223576623715198,
+  "metalEndY": 1.0193576628342509,
+  "insertionMeters": 0.002999999537268927,
+  "environmentCollisionSamples": [],
+  "frames": 301,
+  "sampleIntervalFrames": 5,
+  "toolMotionPositionToleranceMeters": 0.0001,
+  "jointPositionsAndSpeedsWithinUrdfLimits": true,
+  "tipboxSha256": "f459aaf27cefcc12bda52d442c9c8e76e48cb0a0a874280254a37e5e4a1d8225",
+  "tip": "A12",
+  "renderMethod": "same assets and FK transforms; offline Blender, simplified laboratory backdrop"
+}

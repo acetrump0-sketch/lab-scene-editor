@@ -1,10 +1,11 @@
+import {createPickupDemo} from './pickup-demo.js?v=1';
 import {createCollisionWorld} from '../../collision.js?v=environment-2';
 const ENVIRONMENT_SCALE = 1.462; // User-requested trial scale; not measured calibration.
 import {robotMetadata,bindRobot,setRobotCollisionGuard,setRobotJoint,robotPanel,rightToolMountMetadata,attachRightPipette,robotToolPose} from '../../robot.js?v=environment-2';
 import {createNavigation} from './navigation.js?v=18';
 import {createLaboratoryEnvironment} from './laboratory.js?v=environment-2';
 import {createPlacement} from './placement.js?v=environment-2';
-import {extraCatalog} from './asset-catalog.js';
+import {extraCatalog} from './asset-catalog.js?v=tipbox-20261114';
 import * as THREE from 'three';
 import {OrbitControls} from '../../vendor/OrbitControls.js';
 import {TransformControls} from '../../vendor/TransformControls.js';
@@ -52,7 +53,7 @@ const assetSelect=$('asset');
 const originalGroup=document.createElement('optgroup');originalGroup.label='原有器材';
 while(assetSelect.firstChild)originalGroup.append(assetSelect.firstChild);
 assetSelect.append(originalGroup);
-for(const [title,filter] of [['最新重建',k=>k==='lichen_p1000'||k==='pipette_stand_metal_tip'],['CAD 器材与耗材',k=>k.startsWith('cad_')&&extraCatalog[k].category==='movable'],['CAD 工位与固定件',k=>k.startsWith('cad_')&&extraCatalog[k].category!=='movable']]){
+for(const [title,filter] of [['最新重建',k=>k==='new_tipbox'||k==='lichen_p1000'||k==='pipette_stand_metal_tip'],['CAD 器材与耗材',k=>k.startsWith('cad_')&&extraCatalog[k].category==='movable'],['CAD 工位与固定件',k=>k.startsWith('cad_')&&extraCatalog[k].category!=='movable']]){
  const group=document.createElement('optgroup');group.label=title;
  for(const [kind,spec] of Object.entries(extraCatalog).filter(([k])=>filter(k))){const option=document.createElement('option');option.value=kind;option.textContent=spec.label;group.append(option);}assetSelect.append(group);
 }
@@ -355,7 +356,7 @@ async function init(){
   window.laboratoryEnvironment = await createLaboratoryEnvironment({scene,camera,orbit,loader,floor,renderer,onCollisionEnvironment:(data,matrix)=>{collisionWorld.setEnvironment(data,matrix);$('collisionInfo').textContent=data?`场景一：${data.proxies.length} 组扫描平面候选；地面采用 Y=0，柜体使用网格，机器人使用逐连杆包围体。`:'场景二尚无扫描碰撞层；仅检查机器人、独立器材、柜体和 Y=0 地面。';const list=$('collisionStructures');list.replaceChildren();for(const p of data?.proxies||[]){const option=document.createElement('option');option.value=p.id;option.textContent=p.label;list.append(option);}},onWorkcellVisibility:visible=>{appearance.setWorkcellVisible(visible);if(!visible)select(null);}});
   collisionWorld.rebuildCabinet();
   const plate=await addObject('plate');plate.position.set(-0.13*ENVIRONMENT_SCALE,tableY,0.05*ENVIRONMENT_SCALE);
-  const tips=await addObject('tips2000');tips.position.set(0.15*ENVIRONMENT_SCALE,tableY,-0.04*ENVIRONMENT_SCALE);await splitTipBox(tips);
+  const tips=await addObject('new_tipbox');tips.position.set(0.15*ENVIRONMENT_SCALE,tableY,-0.04*ENVIRONMENT_SCALE);
   const robot=await addObject('wheel_robot');objects.forEach(o=>placement.remember(o));robotView();select(robot);status('就绪 · 最新移液枪已固定连接机器人右臂');
   window.labStudio={scene,camera,navigation,objects:()=>objects,addObject,splitTipBox,placement,collisionWorld,select,setRobotJoint,robotView,snapshot,annotations,exportDataset,cabinet,setSash,ready:false};
   window.laboratoryEnvironment.setWorkcellItems(()=>[cabinet,grid,...objects]);
@@ -369,3 +370,6 @@ $('focusCanvas').onclick=()=>{document.body.classList.toggle('canvas-focus');$('
 for(const id of ['focusRightTool','robotView','editorView','workView','wholeView','detailView','focusSelected'])$(id).addEventListener('click',()=>navigation.setEnabled(false),true);
 
 $('focusCollision').onclick=()=>{const entries=collisionWorld.getEnvironment().filter(e=>e.id===$('collisionStructures').value);if(!entries.length)return;collisionWorld.setDebug(true);$('showCollision').checked=true;const center=new THREE.Vector3();entries.forEach(e=>center.add(e.obb.center));center.divideScalar(entries.length);orbit.target.copy(center);camera.position.copy(center).add(new THREE.Vector3(2,1.5,2));orbit.update();};
+
+const pickupDemo=createPickupDemo({scene,camera,orbit,loadModel,objects:()=>objects,setSash,getSash:()=>sashFraction,select,status,collisionWorld,navigation});
+$('playPickup').onclick=run(()=>pickupDemo.play());

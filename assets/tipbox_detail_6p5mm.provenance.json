@@ -1,0 +1,10 @@
+{
+  "source": "枪头盒_补充细节_凸台6.5mm.blend",
+  "sourceSha256": "52318d9bbdb3ca13a4cb7e1b818bb5f12927fe828bb964cede6698b98f450393",
+  "assetSha256": "f459aaf27cefcc12bda52d442c9c8e76e48cb0a0a874280254a37e5e4a1d8225",
+  "tips": 96,
+  "filters": 96,
+  "scale": 1,
+  "metricBasis": "source_meters_unverified",
+  "export": "Blender glTF Y-up; selected mesh objects; no rescaling"
+}
