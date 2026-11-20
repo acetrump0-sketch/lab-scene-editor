@@ -1,0 +1,31 @@
+{
+  "robotLink": "AR5-5_08L-W4C1C9-ZY2_flan_link",
+  "cameraToFlangeColumnMajor": [
+    -1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    -1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.06,
+    1.0
+  ],
+  "verticalFovDegrees": 60,
+  "modelDimensionsMeters": [
+    0.07,
+    0.045,
+    0.056
+  ],
+  "calibrated": false,
+  "note": "Schematic camera, flange +Z optical direction, optical center 60mm from flange; replace with measured extrinsics and intrinsics.",
+  "version": 1,
+  "assetFile": "robot/left_flange_camera.glb"
+}

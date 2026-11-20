@@ -1,0 +1,97 @@
+{
+  "tipRimY": 1.0223576623715198,
+  "metalEndY": 1.0193576628342509,
+  "insertionMeters": 0.002999999537268927,
+  "environmentCollisionSamples": [],
+  "frames": 301,
+  "video": "robot_dual_arm_camera_pickup.mp4",
+  "resolution": [
+    1920,
+    720
+  ],
+  "panelResolution": [
+    960,
+    720
+  ],
+  "fps": 25,
+  "videoFrames": 300,
+  "durationSeconds": 12,
+  "layout": [
+    "third-person",
+    "left-flange-camera"
+  ],
+  "synchronized": true,
+  "leftCamera": {
+    "robotLink": "AR5-5_08L-W4C1C9-ZY2_flan_link",
+    "cameraToFlangeColumnMajor": [
+      -1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      -1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.06,
+      1.0
+    ],
+    "verticalFovDegrees": 60,
+    "modelDimensionsMeters": [
+      0.07,
+      0.045,
+      0.056
+    ],
+    "calibrated": false,
+    "note": "Schematic camera, flange +Z optical direction, optical center 60mm from flange; replace with measured extrinsics and intrinsics."
+  },
+  "thirdCamera": {
+    "position": [
+      2.0,
+      1.95,
+      3.7
+    ],
+    "target": [
+      0,
+      1.15,
+      0.3
+    ],
+    "fov": 52
+  },
+  "maxJointSpeedsRadPerSecond": {
+    "Calf_joint": 0.019446887336219132,
+    "Thigh_joint": 0.07465304276262352,
+    "Waist_joint": 0.037860949398800525,
+    "AR5-5_08R-W4C1C9-ZY2_joint_1": 0.08243472657899209,
+    "AR5-5_08R-W4C1C9-ZY2_joint_2": 0.0015859249944683018,
+    "AR5-5_08R-W4C1C9-ZY2_joint_3": 0.01146443500810862,
+    "AR5-5_08R-W4C1C9-ZY2_joint_4": 0.0019861024930151183,
+    "AR5-5_08R-W4C1C9-ZY2_joint_5": 0.02010166449186862,
+    "AR5-5_08R-W4C1C9-ZY2_joint_6": 0.012751809067963749,
+    "AR5-5_08R-W4C1C9-ZY2_joint_7": 0.16446968352672175,
+    "AR5-5_08L-W4C1C9-ZY2_joint_1": 0.12002187072649023,
+    "AR5-5_08L-W4C1C9-ZY2_joint_2": 0.10069388123453149,
+    "AR5-5_08L-W4C1C9-ZY2_joint_3": 0.030552272381890837,
+    "AR5-5_08L-W4C1C9-ZY2_joint_4": 0.134453861827305,
+    "AR5-5_08L-W4C1C9-ZY2_joint_5": 0.19880312623321572,
+    "AR5-5_08L-W4C1C9-ZY2_joint_6": 0.16387238794657172,
+    "AR5-5_08L-W4C1C9-ZY2_joint_7": 0.163268666862533
+  },
+  "collisionSampleStride": 5,
+  "collisionValidation": "Existing approximate robot/cabinet/scanned-surface collision engine; contact target excluded; not continuous dynamics or contact-force validation.",
+  "cameraPoseValidation": "All 301 left optical world matrices independently checked using Three.js URDF FK against trajectory to 1e-5; all right tool matrices to 1e-6.",
+  "environment": {
+    "source": "v16/scenes/original/environment_clean_v2.sog",
+    "sha256": "e37111c21520a010522bd35ccc52eb18cbb6794f01768ccc6901a96f6a958a44",
+    "trialScale": 1.462
+  },
+  "renderMethod": "Offline Blender Eevee mesh RGBA + axial depth; actual SOG covariance/opacity/SH3 Gaussian rasterization with per-pixel depth insertion in each camera. Camera world poses are C*FK, moving optical mount fixed to left flange.",
+  "calibrated": false,
+  "videoSHA256": "71d1f5e92577413b465d9704bb50f01ffda1cd32d6953570aedda4f3c829cdd2",
+  "decodedVideoFrames": 300
+}

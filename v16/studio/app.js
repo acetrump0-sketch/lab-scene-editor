@@ -1,4 +1,5 @@
-import {createPickupDemo} from './pickup-demo.js?v=gaussian-2';
+import {leftCameraMetadata,attachLeftCamera,leftCameraPose} from '../../left-camera.js';
+import {createPickupDemo} from './pickup-demo.js?v=dual-camera-1';
 import {createCollisionWorld} from '../../collision.js?v=environment-2';
 const ENVIRONMENT_SCALE = 1.462; // User-requested trial scale; not measured calibration.
 import {robotMetadata,bindRobot,setRobotCollisionGuard,setRobotJoint,robotPanel,rightToolMountMetadata,attachRightPipette,robotToolPose} from '../../robot.js?v=environment-2';
@@ -162,7 +163,7 @@ async function addObject(kind, pose=null) {
   const object=new THREE.Group(); object.add(model);
   object.userData={kind,assetFile,id:nextId,label:spec.label+' '+nextId, normalization:{uniformScale:factor,translation:model.position.toArray()},metricBasis:spec.metricBasis||(spec.calibrated?'user_measured':'assumed_size'),assetVersion:spec.assetVersion||null,sourceHash:spec.sourceHash||null,assetUuid:spec.assetUuid||null,connectionInterface:spec.connectionInterface||'',acceptsInterfaces:spec.acceptsInterfaces||'',notes:spec.note||''};
   nextId++;
-  if(robotMeta){bindRobot(object,robotMeta,pose?.jointAngles);if(!pose||pose.rightTool){const mount=await rightToolMountMetadata();attachRightPipette(object,await loadModel(mount.assetFile),mount);}}
+  if(robotMeta){bindRobot(object,robotMeta,pose?.jointAngles);if(!pose||pose.rightTool){const mount=await rightToolMountMetadata();attachRightPipette(object,await loadModel(mount.assetFile),mount);}if(!pose||pose.leftCamera){const mount=await leftCameraMetadata();attachLeftCamera(object,await loadModel(mount.assetFile),mount);}}
   if(spec.part==='tip')object.userData.sourcePart=pose?.sourcePart||'Tip_2000uL_A01';
   if (pose) {
     for(const key of ['mount','slots'])if(pose[key])object.userData[key]=structuredClone(pose[key]);
@@ -271,7 +272,7 @@ $('fov').onchange=()=>{camera.fov=THREE.MathUtils.clamp(Number($('fov').value)||
 $('exposure').oninput=()=>renderer.toneMappingExposure=Number($('exposure').value);
 function serializeObject(object) {
   object.updateMatrixWorld(true);
-  return {...object.userData,rightToolPose:robotToolPose(object), file:object.userData.assetFile||catalog[object.userData.kind].file,position:object.position.toArray(),quaternion:object.quaternion.toArray(),scale:object.scale.toArray(),matrixWorld:object.matrixWorld.toArray()};
+  return {...object.userData,rightToolPose:robotToolPose(object),leftCameraPose:leftCameraPose(object), file:object.userData.assetFile||catalog[object.userData.kind].file,position:object.position.toArray(),quaternion:object.quaternion.toArray(),scale:object.scale.toArray(),matrixWorld:object.matrixWorld.toArray()};
 }
 function snapshot() {
   camera.updateMatrixWorld(true);
@@ -290,6 +291,7 @@ $('loadFile').onchange=run(async()=>{
   if(!data.camera || ![data.camera.position,data.camera.target].every(a=>Array.isArray(a)&&a.length===3&&a.every(Number.isFinite)) || !Number.isFinite(data.camera.fov) || data.camera.fov<15 || data.camera.fov>100 || !Number.isFinite(data.exposure)) throw new Error('相机参数无效');
   if(new Set(data.objects.map(o=>o.id)).size!==data.objects.length)throw new Error('物体标识重复');
   for(const o of data.objects)if(o.kind==='wheel_robot'&&o.jointAngles){const meta=await robotMetadata();for(const [name,value] of Object.entries(o.jointAngles)){const j=meta.joints.find(j=>j.name===name&&j.type!=='fixed');if(!j||!Number.isFinite(value)||(j.type==='revolute'&&(value<j.limit.lower||value>j.limit.upper)))throw Error('机器人关节角无效');}}
+  for(const o of data.objects)if(o.leftCamera&&(o.kind!=='wheel_robot'||o.leftCamera.assetFile!=='robot/left_flange_camera.glb'||o.leftCamera.mountVersion!==1))throw Error('不支持的左法兰相机配置');
   for(const o of data.objects)if(o.rightTool&&(o.kind!=='wheel_robot'||o.rightTool.assetFile!=='pipette_stand_metal_tip.glb'||o.rightTool.mountVersion!==1))throw Error('不支持的机器人工具配置');
   const offsetY=Number.isFinite(data.tableY)?tableY-data.tableY:0;
   for(const o of data.objects)if(o.kind!=='wheel_robot')o.position[1]+=offsetY;
@@ -372,4 +374,4 @@ for(const id of ['focusRightTool','robotView','editorView','workView','wholeView
 $('focusCollision').onclick=()=>{const entries=collisionWorld.getEnvironment().filter(e=>e.id===$('collisionStructures').value);if(!entries.length)return;collisionWorld.setDebug(true);$('showCollision').checked=true;const center=new THREE.Vector3();entries.forEach(e=>center.add(e.obb.center));center.divideScalar(entries.length);orbit.target.copy(center);camera.position.copy(center).add(new THREE.Vector3(2,1.5,2));orbit.update();};
 
 const pickupDemo=createPickupDemo({scene,camera,orbit,loadModel,objects:()=>objects,setSash,getSash:()=>sashFraction,select,status,collisionWorld,navigation});
-$('playPickup').onclick=run(()=>pickupDemo.play());
+$('playPickup').onclick=run(()=>pickupDemo.play($('pickupView').value));
