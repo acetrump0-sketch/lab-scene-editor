@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "assetFile": "pipette_stand_metal_tip.glb",
+  "robotLink": "AR5-5_08R-W4C1C9-ZY2_flan_link",
+  "mountPart": "green_base",
+  "mountPointSource": [
+    -1.3441507083674271e-06,
+    0.0975748160853982,
+    -0.047321921990563474
+  ],
+  "outwardToolAxisSource": [
+    0.00037929709231369836,
+    0.005448356144181821,
+    0.9999850856633022
+  ],
+  "toolToFlangeColumnMajor": [
+    0.99999992806472,
+    -2.066576316335092e-06,
+    0.00037929709231369836,
+    0.0,
+    4.235164736271502e-22,
+    0.9999851575975147,
+    0.005448356144181821,
+    0.0,
+    -0.00037930272207736327,
+    -0.005448355752252796,
+    0.9999850856633022,
+    0.0,
+    -1.6605183213277792e-05,
+    -0.09783119450936817,
+    0.04678959437658189,
+    1.0
+  ],
+  "scale": 1,
+  "method": "Green circular base rear face center aligned to right URDF flange origin; face normal aligned with flange +Z; tool +Y defines roll.",
+  "metricBasis": "existing 250mm display asset; geometric coupling only, not measured mechanical calibration"
+}

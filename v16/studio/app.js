@@ -1,5 +1,5 @@
 const ENVIRONMENT_SCALE = 1.462; // User-requested trial scale; not measured calibration.
-import {robotMetadata,bindRobot,setRobotJoint,robotPanel} from '../../robot.js?v=1';
+import {robotMetadata,bindRobot,setRobotJoint,robotPanel,rightToolMountMetadata,attachRightPipette,robotToolPose} from '../../robot.js?v=right-tool-1';
 import {createNavigation} from './navigation.js?v=18';
 import {createLaboratoryEnvironment} from './laboratory.js?v=scale-1462';
 import {createPlacement} from './placement.js?v=robot-1';
@@ -158,7 +158,7 @@ async function addObject(kind, pose=null) {
   const object=new THREE.Group(); object.add(model);
   object.userData={kind,assetFile,id:nextId,label:spec.label+' '+nextId, normalization:{uniformScale:factor,translation:model.position.toArray()},metricBasis:spec.metricBasis||(spec.calibrated?'user_measured':'assumed_size'),assetVersion:spec.assetVersion||null,sourceHash:spec.sourceHash||null,assetUuid:spec.assetUuid||null,connectionInterface:spec.connectionInterface||'',acceptsInterfaces:spec.acceptsInterfaces||'',notes:spec.note||''};
   nextId++;
-  if(robotMeta)bindRobot(object,robotMeta,pose?.jointAngles);
+  if(robotMeta){bindRobot(object,robotMeta,pose?.jointAngles);if(!pose||pose.rightTool){const mount=await rightToolMountMetadata();attachRightPipette(object,await loadModel(mount.assetFile),mount);}}
   if(spec.part==='tip')object.userData.sourcePart=pose?.sourcePart||'Tip_2000uL_A01';
   if (pose) {
     for(const key of ['mount','slots'])if(pose[key])object.userData[key]=structuredClone(pose[key]);
@@ -259,13 +259,14 @@ $('sash').oninput=()=>setSash(Number($('sash').value)/100);
 $('appearance').onchange=()=>appearance.apply($('appearance').value==='studio');
 $('cleanView').onclick=()=>{select(null);grid.visible=false;$('guides').checked=false;};
 $('focusSelected').onclick=()=>{if(!selected)return;window.laboratoryEnvironment?.ensureEditing();const b=new THREE.Box3().setFromObject(selected),c=b.getCenter(new THREE.Vector3()),d=Math.max(b.getSize(new THREE.Vector3()).length(),.04);orbit.target.copy(c);camera.position.copy(c).add(new THREE.Vector3(.8,.6,1).normalize().multiplyScalar(d*1.7));orbit.update();};
+$('focusRightTool').onclick=()=>{const tool=selected?.getObjectByName('right_arm_pipette');if(!tool)return;window.laboratoryEnvironment?.ensureEditing();const b=new THREE.Box3().setFromObject(tool),c=b.getCenter(new THREE.Vector3());orbit.target.copy(c);camera.up.set(0,1,0);camera.position.copy(c).add(new THREE.Vector3(.35,.2,.4));orbit.update();};
 $('workView').onclick=workView; $('wholeView').onclick=wholeView;
 $('detailView').onclick=()=>{camera.position.set(0.32,tableY+0.40,0.65);orbit.target.set(0,tableY+0.05,0);orbit.update();};
 $('fov').onchange=()=>{camera.fov=THREE.MathUtils.clamp(Number($('fov').value)||45,15,100);camera.updateProjectionMatrix();};
 $('exposure').oninput=()=>renderer.toneMappingExposure=Number($('exposure').value);
 function serializeObject(object) {
   object.updateMatrixWorld(true);
-  return {...object.userData, file:object.userData.assetFile||catalog[object.userData.kind].file,position:object.position.toArray(),quaternion:object.quaternion.toArray(),scale:object.scale.toArray(),matrixWorld:object.matrixWorld.toArray()};
+  return {...object.userData,rightToolPose:robotToolPose(object), file:object.userData.assetFile||catalog[object.userData.kind].file,position:object.position.toArray(),quaternion:object.quaternion.toArray(),scale:object.scale.toArray(),matrixWorld:object.matrixWorld.toArray()};
 }
 function snapshot() {
   camera.updateMatrixWorld(true);
@@ -284,6 +285,7 @@ $('loadFile').onchange=run(async()=>{
   if(!data.camera || ![data.camera.position,data.camera.target].every(a=>Array.isArray(a)&&a.length===3&&a.every(Number.isFinite)) || !Number.isFinite(data.camera.fov) || data.camera.fov<15 || data.camera.fov>100 || !Number.isFinite(data.exposure)) throw new Error('相机参数无效');
   if(new Set(data.objects.map(o=>o.id)).size!==data.objects.length)throw new Error('物体标识重复');
   for(const o of data.objects)if(o.kind==='wheel_robot'&&o.jointAngles){const meta=await robotMetadata();for(const [name,value] of Object.entries(o.jointAngles)){const j=meta.joints.find(j=>j.name===name&&j.type!=='fixed');if(!j||!Number.isFinite(value)||(j.type==='revolute'&&(value<j.limit.lower||value>j.limit.upper)))throw Error('机器人关节角无效');}}
+  for(const o of data.objects)if(o.rightTool&&(o.kind!=='wheel_robot'||o.rightTool.assetFile!=='pipette_stand_metal_tip.glb'||o.rightTool.mountVersion!==1))throw Error('不支持的机器人工具配置');
   const offsetY=Number.isFinite(data.tableY)?tableY-data.tableY:0;
   for(const o of data.objects)if(o.kind!=='wheel_robot')o.position[1]+=offsetY;
   const old=[...objects];
@@ -348,8 +350,7 @@ async function init(){
   window.laboratoryEnvironment = await createLaboratoryEnvironment({scene,camera,orbit,loader,floor,renderer,onWorkcellVisibility:visible=>{appearance.setWorkcellVisible(visible);if(!visible)select(null);}});
   const plate=await addObject('plate');plate.position.set(-0.13*ENVIRONMENT_SCALE,tableY,0.05*ENVIRONMENT_SCALE);
   const tips=await addObject('tips2000');tips.position.set(0.15*ENVIRONMENT_SCALE,tableY,-0.04*ENVIRONMENT_SCALE);await splitTipBox(tips);
-  const newPipette=await addObject('pipette_stand_metal_tip');newPipette.position.set(.32*ENVIRONMENT_SCALE,tableY,.08*ENVIRONMENT_SCALE);
-  const robot=await addObject('wheel_robot');objects.forEach(o=>placement.remember(o));robotView();select(robot);status('就绪 · 已加入新移液枪，独立资产可移动、旋转和缩放');
+  const robot=await addObject('wheel_robot');objects.forEach(o=>placement.remember(o));robotView();select(robot);status('就绪 · 最新移液枪已固定连接机器人右臂');
   window.labStudio={scene,camera,navigation,objects:()=>objects,addObject,splitTipBox,placement,select,setRobotJoint,robotView,snapshot,annotations,exportDataset,cabinet,setSash,ready:false};
   window.laboratoryEnvironment.setWorkcellItems(()=>[cabinet,grid,...objects]);
   if(new URLSearchParams(location.search).get('scene')==='scene2')await window.laboratoryEnvironment.setScene('scene2');else {window.laboratoryEnvironment.ensureEditing();robotView();}
@@ -359,4 +360,4 @@ init().catch(e=>{status('加载失败：'+e.message);console.error(e);});
 
 $('focusCanvas').onclick=()=>{document.body.classList.toggle('canvas-focus');$('focusCanvas').textContent=document.body.classList.contains('canvas-focus')?'显示编辑面板':'展开画布';resize()};
 
-for(const id of ['robotView','editorView','workView','wholeView','detailView','focusSelected'])$(id).addEventListener('click',()=>navigation.setEnabled(false),true);
+for(const id of ['focusRightTool','robotView','editorView','workView','wholeView','detailView','focusSelected'])$(id).addEventListener('click',()=>navigation.setEnabled(false),true);
