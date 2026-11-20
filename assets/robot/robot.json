@@ -1,0 +1,520 @@
+{
+  "name": "Wheel_Robot_PD2616-2.0 -AR5",
+  "sourceArchive": "Wheel_Robot_PD2616-2.0 -AR5(1).zip",
+  "sourceSha256": "6154ce510f25638a4a1b3eb2185efcc8957e999db4f085ce4ed337dc7d9f8ce2",
+  "units": "meters",
+  "sourceAxes": "URDF Z up, X forward",
+  "displayAxes": "Y up; root rotates -90 degrees around X",
+  "geometry": "Web LOD: quadric decimation to 18% triangles (minimum 4000 per part); vertex normals recomputed; URDF colors retained.",
+  "links": 35,
+  "joints": [
+    {
+      "name": "Calf_joint",
+      "type": "revolute",
+      "parent": "Chassis_link",
+      "child": "Calf_link",
+      "axis": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "limit": {
+        "lower": -1.2217,
+        "upper": 0.0873,
+        "effort": 281.0,
+        "velocity": 0.5236
+      }
+    },
+    {
+      "name": "Thigh_joint",
+      "type": "revolute",
+      "parent": "Calf_link",
+      "child": "Thigh_link",
+      "axis": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "limit": {
+        "lower": -1.5708,
+        "upper": 2.4435,
+        "effort": 281.0,
+        "velocity": 0.5236
+      }
+    },
+    {
+      "name": "Waist_joint",
+      "type": "revolute",
+      "parent": "Thigh_link",
+      "child": "Waist_link",
+      "axis": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "limit": {
+        "lower": -2.2689,
+        "upper": 1.5708,
+        "effort": 281.0,
+        "velocity": 0.5236
+      }
+    },
+    {
+      "name": "Chest_joint",
+      "type": "revolute",
+      "parent": "Waist_link",
+      "child": "Chest_link",
+      "axis": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "limit": {
+        "lower": -1.5708,
+        "upper": 3.1416,
+        "effort": 281.0,
+        "velocity": 0.5236
+      }
+    },
+    {
+      "name": "Neck_joint",
+      "type": "revolute",
+      "parent": "Chest_link",
+      "child": "Neck_link",
+      "axis": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "limit": {
+        "lower": -1.5708,
+        "upper": 1.5708,
+        "effort": 8.9,
+        "velocity": 0.5236
+      }
+    },
+    {
+      "name": "Head_joint",
+      "type": "revolute",
+      "parent": "Neck_link",
+      "child": "Head_link",
+      "axis": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "limit": {
+        "lower": -0.5236,
+        "upper": 0.6981,
+        "effort": 8.9,
+        "velocity": 0.5236
+      }
+    },
+    {
+      "name": "RGBD2_joint",
+      "type": "fixed",
+      "parent": "Head_link",
+      "child": "RGBD2_link",
+      "axis": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "limit": {}
+    },
+    {
+      "name": "RGB1_joint",
+      "type": "fixed",
+      "parent": "Head_link",
+      "child": "RGB1_link",
+      "axis": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "limit": {}
+    },
+    {
+      "name": "RGB2_joint",
+      "type": "fixed",
+      "parent": "Head_link",
+      "child": "RGB2_link",
+      "axis": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "limit": {}
+    },
+    {
+      "name": "RGB3_joint",
+      "type": "fixed",
+      "parent": "Head_link",
+      "child": "RGB3_link",
+      "axis": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "limit": {}
+    },
+    {
+      "name": "RGB4_joint",
+      "type": "fixed",
+      "parent": "Head_link",
+      "child": "RGB4_link",
+      "axis": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "limit": {}
+    },
+    {
+      "name": "RGBD1_joint",
+      "type": "fixed",
+      "parent": "Chest_link",
+      "child": "RGBD1_link",
+      "axis": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "limit": {}
+    },
+    {
+      "name": "Wheel1_joint",
+      "type": "continuous",
+      "parent": "Chassis_link",
+      "child": "Wheel1_link",
+      "axis": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "limit": {}
+    },
+    {
+      "name": "Wheel2_joint",
+      "type": "continuous",
+      "parent": "Chassis_link",
+      "child": "Wheel2_link",
+      "axis": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "limit": {}
+    },
+    {
+      "name": "Wheel3_joint",
+      "type": "continuous",
+      "parent": "Chassis_link",
+      "child": "Wheel3_link",
+      "axis": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "limit": {}
+    },
+    {
+      "name": "Wheel4_joint",
+      "type": "continuous",
+      "parent": "Chassis_link",
+      "child": "Wheel4_link",
+      "axis": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "limit": {}
+    },
+    {
+      "name": "left_fixed",
+      "type": "fixed",
+      "parent": "Chest_link",
+      "child": "AR5-5_08L-W4C1C9-ZY2_base",
+      "axis": [
+        1,
+        0,
+        0
+      ],
+      "limit": {}
+    },
+    {
+      "name": "AR5-5_08L-W4C1C9-ZY2_joint_1",
+      "type": "revolute",
+      "parent": "AR5-5_08L-W4C1C9-ZY2_base",
+      "child": "AR5-5_08L-W4C1C9-ZY2_link1",
+      "axis": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "limit": {
+        "effort": 113.0,
+        "lower": -3.1067,
+        "upper": 3.1067,
+        "velocity": 3.0543261909900763
+      }
+    },
+    {
+      "name": "AR5-5_08L-W4C1C9-ZY2_joint_2",
+      "type": "revolute",
+      "parent": "AR5-5_08L-W4C1C9-ZY2_link1",
+      "child": "AR5-5_08L-W4C1C9-ZY2_link2",
+      "axis": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "limit": {
+        "effort": 113.0,
+        "lower": -2.0944,
+        "upper": 2.0944,
+        "velocity": 3.0543261909900763
+      }
+    },
+    {
+      "name": "AR5-5_08L-W4C1C9-ZY2_joint_3",
+      "type": "revolute",
+      "parent": "AR5-5_08L-W4C1C9-ZY2_link2",
+      "child": "AR5-5_08L-W4C1C9-ZY2_link3",
+      "axis": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "limit": {
+        "effort": 70.0,
+        "lower": -3.1067,
+        "upper": 3.1067,
+        "velocity": 4.71238898038469
+      }
+    },
+    {
+      "name": "AR5-5_08L-W4C1C9-ZY2_joint_4",
+      "type": "revolute",
+      "parent": "AR5-5_08L-W4C1C9-ZY2_link3",
+      "child": "AR5-5_08L-W4C1C9-ZY2_link4",
+      "axis": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "limit": {
+        "effort": 70.0,
+        "lower": -1.0472,
+        "upper": 2.5307,
+        "velocity": 5.235987755982989
+      }
+    },
+    {
+      "name": "AR5-5_08L-W4C1C9-ZY2_joint_5",
+      "type": "revolute",
+      "parent": "AR5-5_08L-W4C1C9-ZY2_link4",
+      "child": "AR5-5_08L-W4C1C9-ZY2_link5",
+      "axis": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "limit": {
+        "effort": 19.0,
+        "lower": -3.1067,
+        "upper": 3.1067,
+        "velocity": 4.1887902047863905
+      }
+    },
+    {
+      "name": "AR5-5_08L-W4C1C9-ZY2_joint_6",
+      "type": "revolute",
+      "parent": "AR5-5_08L-W4C1C9-ZY2_link5",
+      "child": "AR5-5_08L-W4C1C9-ZY2_link6",
+      "axis": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "limit": {
+        "effort": 19.0,
+        "lower": -1.0472,
+        "upper": 1.0472,
+        "velocity": 4.1887902047863905
+      }
+    },
+    {
+      "name": "AR5-5_08L-W4C1C9-ZY2_joint_7",
+      "type": "revolute",
+      "parent": "AR5-5_08L-W4C1C9-ZY2_link6",
+      "child": "AR5-5_08L-W4C1C9-ZY2_link7",
+      "axis": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "limit": {
+        "effort": 19.0,
+        "lower": -1.5708,
+        "upper": 1.5708,
+        "velocity": 4.1887902047863905
+      }
+    },
+    {
+      "name": "AR5-5_08L-W4C1C9-ZY2_flan_joint",
+      "type": "fixed",
+      "parent": "AR5-5_08L-W4C1C9-ZY2_link7",
+      "child": "AR5-5_08L-W4C1C9-ZY2_flan_link",
+      "axis": [
+        1,
+        0,
+        0
+      ],
+      "limit": {}
+    },
+    {
+      "name": "right_fixed",
+      "type": "fixed",
+      "parent": "Chest_link",
+      "child": "AR5-5_08R-W4C1C9-ZY2_base",
+      "axis": [
+        1,
+        0,
+        0
+      ],
+      "limit": {}
+    },
+    {
+      "name": "AR5-5_08R-W4C1C9-ZY2_joint_1",
+      "type": "revolute",
+      "parent": "AR5-5_08R-W4C1C9-ZY2_base",
+      "child": "AR5-5_08R-W4C1C9-ZY2_link1",
+      "axis": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "limit": {
+        "effort": 113.0,
+        "lower": -3.1067,
+        "upper": 3.1067,
+        "velocity": 3.0543261909900763
+      }
+    },
+    {
+      "name": "AR5-5_08R-W4C1C9-ZY2_joint_2",
+      "type": "revolute",
+      "parent": "AR5-5_08R-W4C1C9-ZY2_link1",
+      "child": "AR5-5_08R-W4C1C9-ZY2_link2",
+      "axis": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "limit": {
+        "effort": 113.0,
+        "lower": -2.0944,
+        "upper": 2.0944,
+        "velocity": 3.0543261909900763
+      }
+    },
+    {
+      "name": "AR5-5_08R-W4C1C9-ZY2_joint_3",
+      "type": "revolute",
+      "parent": "AR5-5_08R-W4C1C9-ZY2_link2",
+      "child": "AR5-5_08R-W4C1C9-ZY2_link3",
+      "axis": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "limit": {
+        "effort": 70.0,
+        "lower": -3.1067,
+        "upper": 3.1067,
+        "velocity": 4.71238898038469
+      }
+    },
+    {
+      "name": "AR5-5_08R-W4C1C9-ZY2_joint_4",
+      "type": "revolute",
+      "parent": "AR5-5_08R-W4C1C9-ZY2_link3",
+      "child": "AR5-5_08R-W4C1C9-ZY2_link4",
+      "axis": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "limit": {
+        "effort": 70.0,
+        "lower": -1.0472,
+        "upper": 2.5307,
+        "velocity": 5.235987755982989
+      }
+    },
+    {
+      "name": "AR5-5_08R-W4C1C9-ZY2_joint_5",
+      "type": "revolute",
+      "parent": "AR5-5_08R-W4C1C9-ZY2_link4",
+      "child": "AR5-5_08R-W4C1C9-ZY2_link5",
+      "axis": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "limit": {
+        "effort": 19.0,
+        "lower": -3.1067,
+        "upper": 3.1067,
+        "velocity": 4.1887902047863905
+      }
+    },
+    {
+      "name": "AR5-5_08R-W4C1C9-ZY2_joint_6",
+      "type": "revolute",
+      "parent": "AR5-5_08R-W4C1C9-ZY2_link5",
+      "child": "AR5-5_08R-W4C1C9-ZY2_link6",
+      "axis": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "limit": {
+        "effort": 19.0,
+        "lower": -1.0472,
+        "upper": 1.0472,
+        "velocity": 4.1887902047863905
+      }
+    },
+    {
+      "name": "AR5-5_08R-W4C1C9-ZY2_joint_7",
+      "type": "revolute",
+      "parent": "AR5-5_08R-W4C1C9-ZY2_link6",
+      "child": "AR5-5_08R-W4C1C9-ZY2_link7",
+      "axis": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "limit": {
+        "effort": 19.0,
+        "lower": -1.5708,
+        "upper": 1.5708,
+        "velocity": 4.1887902047863905
+      }
+    },
+    {
+      "name": "AR5-5_08R-W4C1C9-ZY2_flan_joint",
+      "type": "fixed",
+      "parent": "AR5-5_08R-W4C1C9-ZY2_link7",
+      "child": "AR5-5_08R-W4C1C9-ZY2_flan_link",
+      "axis": [
+        1,
+        0,
+        0
+      ],
+      "limit": {}
+    }
+  ]
+}

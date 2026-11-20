@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "defaultScene": "original",
+  "scenes": [
+    {
+      "id": "original",
+      "label": "场景一 · 原安全橱实验室",
+      "asset": "../environment_without_scanned_cabinet.sog",
+      "reference": "../reference.sog",
+      "cameras": "../cameras.json",
+      "matrix": [
+        -0.0,
+        -0.0,
+        -0.4262295081967214,
+        0.0,
+        -0.0,
+        -0.4262295081967214,
+        -0.0,
+        0.0,
+        -0.4262295081967214,
+        -0.0,
+        -0.0,
+        0.0,
+        -0.2450819672131148,
+        1.0868852459016394,
+        0.35163934426229515,
+        1.0
+      ],
+      "defaultCamera": 180,
+      "registration": "原安全橱粗轮廓配准，米制精度未验证",
+      "source": "https://app.insta360.com/3dspace/detail/GS3DCf9157b10895a4e988dbcb376c5e75d06",
+      "cleanedAsset": "../scenes/original/environment_denoised.sog",
+      "cleanedReference": "../scenes/original/reference_denoised.sog"
+    },
+    {
+      "id": "scene2",
+      "label": "场景二 · 新扫描环境",
+      "asset": "../scenes/scene2/environment.sog",
+      "cameras": "../scenes/scene2/cameras.json",
+      "matrix": [
+        -0.7864185121208022,
+        -0.028178063814169485,
+        0.617050986964115,
+        0.0,
+        -0.0006978310892242464,
+        -0.9989177832464741,
+        -0.046505648535647,
+        0.0,
+        0.6176936431803997,
+        -0.03700350028895654,
+        0.7855477733027385,
+        0.0,
+        2.6832166425934787,
+        1.5574773717271795,
+        -4.461905882219377,
+        1.0
+      ],
+      "defaultCamera": 0,
+      "registration": "按首个扫描机位建立初始摆放，尚未进行工位配准或尺度标定",
+      "source": "https://app.insta360.com/3dspace/detail/GS3DCbce57adbfca94016905b1ae2b5b7aa9d",
+      "cleanedAsset": "../scenes/scene2/environment_denoised.sog"
+    }
+  ]
+}

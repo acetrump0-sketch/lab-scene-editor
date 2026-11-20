@@ -1,0 +1,52 @@
+{
+  "source_file": "pipette_stand_metal_tip.blend",
+  "sha256": "4dab0483198904645b35063430f1b718c435b18c77d2af6c29825dcdc76005d5",
+  "parts": [
+    "white_screw_D",
+    "white_screw_C",
+    "white_screw_B",
+    "white_screw_A",
+    "white_housing",
+    "green_upright",
+    "green_mount",
+    "green_hole_D_mark",
+    "green_hole_C_mark",
+    "green_hole_B_mark",
+    "green_hole_A_mark",
+    "green_base",
+    "connector_spindle",
+    "connector_clamp",
+    "black_vent_marks",
+    "black_rod",
+    "black_head",
+    "metal_rounded_tip"
+  ],
+  "source_units": "NONE",
+  "display_length_m": 0.25,
+  "metric_basis": "assumed_length_250mm_not_measured",
+  "orientation_basis": "black_head to metal_rounded_tip axis made vertical; screw C-D defines transverse axis",
+  "rotation_rows": [
+    [
+      0.9471689462661743,
+      0.2572174668312073,
+      -0.1915990263223648
+    ],
+    [
+      0.3205992579460144,
+      -0.7418860793113708,
+      0.5889152884483337
+    ],
+    [
+      0.009334644302725792,
+      -0.619228720664978,
+      -0.785155177116394
+    ]
+  ],
+  "uniform_scale": 0.06470886617898941,
+  "translation_before_scale": [
+    0.8925458788871765,
+    -3.254145622253418,
+    1.5886263847351074
+  ],
+  "materials_preserved": true
+}

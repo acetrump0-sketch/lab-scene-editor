@@ -1,0 +1,22 @@
+{
+  "source_sha256": "dfd731390ba1d9e8b9fdd47f1c7700b37c6c71e16e29afdb4c86b6c9d5e44321",
+  "source_gaussians": 1000000,
+  "hidden_gaussians": 63342,
+  "method": "set alpha to zero only inside cabinet replacement bounds; all means, covariance and SH payloads unchanged",
+  "bounds_in_cabinet_scan_raw": [
+    [
+      0.05,
+      1.65
+    ],
+    [
+      -1.45,
+      2.75
+    ],
+    [
+      -2.25,
+      1.1
+    ]
+  ],
+  "original_source_unchanged": true,
+  "caveat": "coarse replacement crop can remove captured cabinet contents and leave edge remnants; source comparison available"
+}

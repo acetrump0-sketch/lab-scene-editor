@@ -1,5 +1,5 @@
 import {robotMetadata,bindRobot,setRobotJoint,robotPanel} from './robot.js?v=1';
-import {createPlacement} from './placement.js';
+import {createPlacement} from './placement.js?v=robot-1';
 import {extraCatalog} from './asset-catalog.js';
 import * as THREE from 'three';
 import {OrbitControls} from './vendor/OrbitControls.js';

@@ -2,7 +2,7 @@ import * as THREE from 'three';
 const rigs=new WeakMap();
 let metadata;
 export async function robotMetadata(){
- if(!metadata){const response=await fetch('./assets/robot/robot.json');if(!response.ok)throw Error('机器人关节文件加载失败');metadata=await response.json();}
+ if(!metadata){const response=await fetch(new URL('./assets/robot/robot.json',import.meta.url));if(!response.ok)throw Error('机器人关节文件加载失败');metadata=await response.json();}
  return metadata;
 }
 export function bindRobot(object,meta,angles={}){
