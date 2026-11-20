@@ -1,3 +1,4 @@
+import {robotMetadata,bindRobot,setRobotJoint,robotPanel} from './robot.js?v=1';
 import {createPlacement} from './placement.js';
 import {extraCatalog} from './asset-catalog.js';
 import * as THREE from 'three';
@@ -32,6 +33,7 @@ const loader = new GLTFLoader();
 const modelCache=new Map();
 async function loadModel(file){if(!modelCache.has(file))modelCache.set(file,loader.loadAsync('assets/'+file).catch(e=>{modelCache.delete(file);throw e;}));return (await modelCache.get(file)).scene.clone(true);}
 const catalog = {
+  wheel_robot:{label:'AR5 轮式双臂机器人',file:'robot/wheel_robot.glb',nativeScale:true,metricBasis:'URDF_meters_unverified',note:'原始 URDF 米制尺寸；双臂各7轴，支持关节限位与姿态保存。机器人不参与器材防穿透、抓取或动力学计算。'},
   tips1000:{label:'枪头盒 · 1000 μL × 96（可拆分）',file:'tips_1000_96_20261105.glb',nativeScale:true,metricBasis:'model_dimensions_unverified',note:'2026-11-05 用户新版：盒体约121×82.8×94 mm，枪头长96.1 mm；保留源模型比例，尺寸未经实物标定。'},
   tips1000_box:{label:'1000 μL 空盒架',file:'tips_1000_96_20261105.glb',nativeScale:true,part:'box',metricBasis:'model_dimensions_unverified'},
   tips1000_tip:{label:'1000 μL 单支枪头',file:'tips_1000_96_20261105.glb',nativeScale:true,part:'tip',metricBasis:'model_dimensions_unverified'},
@@ -76,6 +78,8 @@ function resize() {
 }
 window.addEventListener('resize', resize);
 function workView() {camera.position.set(0.48,tableY+0.33,1.08); orbit.target.set(0,tableY+0.10,0); orbit.update();}
+function robotView(){camera.position.set(3.2,2.2,3.6);orbit.target.set(0,.9,.5);orbit.update();}
+$('robotView').onclick=robotView;
 function wholeView() {camera.position.set(2.3,1.8,3.0); orbit.target.set(0,0.95,0); orbit.update();}
 workView(); resize();
 renderer.setAnimationLoop(() => {
@@ -90,7 +94,7 @@ function select(object) {
   if (object) transform.attach(object); else transform.detach();
   boxHelper.visible = !!object && $('guides').checked;
   $('selected').textContent = object ? object.userData.label : '选择一个器材';
-  renderList(); updateFields();
+  renderList(); updateFields();robotPanel(object,updateFields);
 }
 function renderList() {
   $('objects').replaceChildren();
@@ -135,6 +139,7 @@ async function addObject(kind, pose=null) {
   const spec=catalog[kind]; if (!spec) throw new Error('未知模型 '+kind);
   status('加载 '+spec.label+'…');
   const assetFile=kind.startsWith('tips1000')&&['tips_1000_96.glb','tips_1000_96_20261105.glb'].includes(pose?.assetFile||pose?.file)?(pose.assetFile||pose.file):spec.file;
+  const robotMeta=kind==='wheel_robot'?await robotMetadata():null;
   let model=await loadModel(assetFile);
   if(spec.part==='box'){const nodes=[];model.traverse(n=>{if(/^Tip_1000uL_/.test(n.name))nodes.push(n);});nodes.forEach(n=>n.removeFromParent());}
   if(spec.part==='tip'){model.updateMatrixWorld(true);const node=model.getObjectByName(pose?.sourcePart||'Tip_1000uL_A01');if(!node)throw new Error('枪头节点不存在');const part=new THREE.Group();part.attach(node);model=part;}
@@ -147,13 +152,15 @@ async function addObject(kind, pose=null) {
   const object=new THREE.Group(); object.add(model);
   object.userData={kind,assetFile,id:nextId,label:spec.label+' '+nextId, normalization:{uniformScale:factor,translation:model.position.toArray()},metricBasis:spec.metricBasis||(spec.calibrated?'user_measured':'assumed_size'),assetVersion:spec.assetVersion||null,sourceHash:spec.sourceHash||null,assetUuid:spec.assetUuid||null,connectionInterface:spec.connectionInterface||'',acceptsInterfaces:spec.acceptsInterfaces||'',notes:spec.note||''};
   nextId++;
+  if(robotMeta)bindRobot(object,robotMeta,pose?.jointAngles);
   if(spec.part==='tip')object.userData.sourcePart=pose?.sourcePart||'Tip_1000uL_A01';
   if (pose) {
     for(const key of ['mount','slots'])if(pose[key])object.userData[key]=structuredClone(pose[key]);
     if(pose.assemblyId!==undefined)object.userData.assemblyId=pose.assemblyId;
     object.position.fromArray(pose.position); object.quaternion.fromArray(pose.quaternion); object.scale.fromArray(pose.scale);
     object.userData.id=pose.id; object.userData.label=pose.label; nextId=Math.max(nextId,pose.id+1);
-  } else object.position.set((objects.length%3-1)*0.22,tableY,0.04);
+  } else if(robotMeta){object.position.set(0,0,1.15);object.rotation.y=Math.PI/2;}
+  else object.position.set((objects.length%3-1)*0.22,tableY,0.04);
   appearance.addObject(object,kind);
   scene.add(object); objects.push(object); placement.remember(object);select(object);
   if(!pose&&$('physics').checked&&placement.collision([object])){
@@ -270,8 +277,9 @@ $('loadFile').onchange=run(async()=>{
   for(const o of data.objects){if(!catalog[o.kind]||![o.position,o.quaternion,o.scale].every(a=>Array.isArray(a)&&a.every(Number.isFinite))||o.position.length!==3||o.quaternion.length!==4||o.scale.length!==3||o.scale.some(v=>v<=0))throw new Error('物体位姿无效');}
   if(!data.camera || ![data.camera.position,data.camera.target].every(a=>Array.isArray(a)&&a.length===3&&a.every(Number.isFinite)) || !Number.isFinite(data.camera.fov) || data.camera.fov<15 || data.camera.fov>100 || !Number.isFinite(data.exposure)) throw new Error('相机参数无效');
   if(new Set(data.objects.map(o=>o.id)).size!==data.objects.length)throw new Error('物体标识重复');
+  for(const o of data.objects)if(o.kind==='wheel_robot'&&o.jointAngles){const meta=await robotMetadata();for(const [name,value] of Object.entries(o.jointAngles)){const j=meta.joints.find(j=>j.name===name&&j.type!=='fixed');if(!j||!Number.isFinite(value)||(j.type==='revolute'&&(value<j.limit.lower||value>j.limit.upper)))throw Error('机器人关节角无效');}}
   const offsetY=Number.isFinite(data.tableY)?tableY-data.tableY:0;
-  for(const o of data.objects)o.position[1]+=offsetY;
+  for(const o of data.objects)if(o.kind!=='wheel_robot')o.position[1]+=offsetY;
   const old=[...objects];
   try {for(const o of data.objects)await addObject(o.kind,o);}catch(e){for(const o of objects.filter(o=>!old.includes(o)))scene.remove(o);objects=old;select(old[0]||null);throw e;}
   old.forEach(o=>scene.remove(o));objects=objects.filter(o=>!old.includes(o));await restoreLegacySlots();select(objects[0]||null);
@@ -331,7 +339,8 @@ async function init(){
   const plate=await addObject('plate');plate.position.set(-0.13,tableY,0.05);
   const tips=await addObject('tips1000');tips.position.set(0.15,tableY,-0.04);await splitTipBox(tips);
   const p1000=await addObject('lichen_p1000');p1000.position.set(.32,tableY,.08);
-  objects.forEach(o=>placement.remember(o));workView();select(p1000);status('就绪 · 已加入力辰 P1000 R3 白模，CAD 资产按需加载');
-  window.labStudio={scene,camera,objects:()=>objects,addObject,splitTipBox,placement,select,snapshot,annotations,exportDataset,cabinet,setSash,ready:true};
+  const robot=await addObject('wheel_robot');
+  objects.forEach(o=>placement.remember(o));robotView();select(robot);status('就绪 · 已加入 AR5 双臂机器人，可在右侧调整关节');
+  window.labStudio={scene,camera,objects:()=>objects,addObject,splitTipBox,placement,select,setRobotJoint,robotView,snapshot,annotations,exportDataset,cabinet,setSash,ready:true};
 }
 init().catch(e=>{status('加载失败：'+e.message);console.error(e);});
