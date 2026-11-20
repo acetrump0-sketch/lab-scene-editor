@@ -65,7 +65,7 @@ export function createAppearance({scene,renderer,key,fill,floor}) {
     if(kind==='tips'&&name.includes('Pink'))mesh.castShadow=true;
   });}
   function box(name,size,pos,material){let m=new THREE.Mesh(new THREE.BoxGeometry(...size),material);m.name=name;m.position.set(...pos);m.receiveShadow=true;details.add(m);return m;}
-  function setupCabinet(cabinet,height){tableY=height;
+  function setupCabinet(cabinet,height,scale=1){tableY=height;
     cabinet.traverse(mesh=>{if(!mesh.isMesh)return;if(!mesh.geometry.attributes.normal)mesh.geometry.computeVertexNormals();mesh.receiveShadow=true;
       let mats=Array.isArray(mesh.material)?mesh.material:[mesh.material];
       const replacements=mats.map(m=>{if(m.name.includes('sash glass'))return glass;if(m.name.includes('Metal panels'))return paint;return refine(m);});
@@ -84,6 +84,7 @@ export function createAppearance({scene,renderer,key,fill,floor}) {
     box('wall_trim',[8,.015,.018],[0,.865,-1.12],steel);
     box('wall_skirting',[8,.085,.025],[0,.0425,-1.12],new THREE.MeshStandardMaterial({color:0x667c85,roughness:.5}));
     for(let i=-3;i<=3;i++)box('wall_joint_'+i,[.002,2.7,.002],[i*1.2,2.22,-1.155],new THREE.MeshStandardMaterial({color:0xb4c3c9,roughness:.8}));
+    details.scale.setScalar(scale);tableY=height*scale;
     apply(enabled);
   }
   function apply(value){enabled=value;scene.environment=value?environment.texture:null;details.visible=value&&workcellVisible;renderer.shadowMap.enabled=value;key.castShadow=value;

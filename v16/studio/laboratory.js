@@ -7,7 +7,7 @@ export async function createLaboratoryEnvironment({scene,camera,orbit,floor,rend
  const $=id=>document.getElementById(id),walls=[];
  scene.traverse(o=>{if(/^laboratory_wall|^wall_lower_panel|^wall_trim|^wall_skirting|^wall_joint_/.test(o.name))walls.push(o)});
  async function json(url){const r=await fetch(url);if(!r.ok)throw Error(`${url}: HTTP ${r.status}`);return r.json();}
- const config=await json('../scenes.json');
+ const config=await json('../scenes.json?v=scale-1462');
  const entries=new Map(config.scenes.map(def=>[def.id,{def,root:null,reference:null,cleanReference:null,clean:null,cameras:null,load:null,referenceLoad:null,adjust:{x:0,y:0,z:0,yaw:0,scale:1},view:null,scanCamera:def.defaultCamera,scanOnly:def.id==='scene2'}]));
  const selector=$('environmentScene');
  for(const {def} of entries.values()){const option=document.createElement('option');option.value=def.id;option.textContent=def.label;selector.append(option);}
@@ -80,8 +80,8 @@ export async function createLaboratoryEnvironment({scene,camera,orbit,floor,rend
   if(active===e)syncControls();visibility();
  }
  function ensureEditing(){$('showCeiling').checked=false;visibility();}
- function editorView(){ensureEditing();applyView({position:[1.45,1.35,2.25],target:[0,.83,0],up:[0,1,0],fov:45});}
- function roomOverview(){if(!active)return;ensureEditing();if(active.def.id==='original')applyView({position:[-2,1.5,3],target:[0,.8,0],up:[0,1,0],fov:65});else roomView();}
+ function editorView(){ensureEditing();applyView({position:[2.1199,1.9737,3.2895],target:[0,1.21346,0],up:[0,1,0],fov:45});}
+ function roomOverview(){if(!active)return;ensureEditing();if(active.def.id==='original')applyView({position:[-2.924,2.193,4.386],target:[0,1.1696,0],up:[0,1,0],fov:65});else roomView();}
  selector.onchange=()=>setScene(selector.value).catch(console.error);
  $('editorView').onclick=editorView;$('roomOverview').onclick=roomOverview;$('roomView').onclick=roomView;$('scanCamera').onchange=roomView;
  $('prevScan').onclick=()=>{$('scanCamera').value=Math.max(0,Number($('scanCamera').value)-10);roomView();};

@@ -11,6 +11,29 @@
       "matrix": [
         -0.0,
         -0.0,
+        -0.6231475409836067,
+        0.0,
+        -0.0,
+        -0.6231475409836067,
+        -0.0,
+        0.0,
+        -0.6231475409836067,
+        -0.0,
+        -0.0,
+        0.0,
+        -0.3583098360655738,
+        1.5890262295081967,
+        0.5140967213114755,
+        1.0
+      ],
+      "defaultCamera": 180,
+      "registration": "原安全橱粗轮廓配准；按用户要求试放大1.462倍，未实测标定",
+      "source": "https://app.insta360.com/3dspace/detail/GS3DCf9157b10895a4e988dbcb376c5e75d06",
+      "cleanedAsset": "../scenes/original/environment_denoised.sog",
+      "cleanedReference": "../scenes/original/reference_denoised.sog",
+      "previousMatrixBeforeTrialScale": [
+        -0.0,
+        -0.0,
         -0.4262295081967214,
         0.0,
         -0.0,
@@ -26,11 +49,8 @@
         0.35163934426229515,
         1.0
       ],
-      "defaultCamera": 180,
-      "registration": "原安全橱粗轮廓配准，米制精度未验证",
-      "source": "https://app.insta360.com/3dspace/detail/GS3DCf9157b10895a4e988dbcb376c5e75d06",
-      "cleanedAsset": "../scenes/original/environment_denoised.sog",
-      "cleanedReference": "../scenes/original/reference_denoised.sog"
+      "trialScale": 1.462,
+      "metricScaleVerified": false
     },
     {
       "id": "scene2",

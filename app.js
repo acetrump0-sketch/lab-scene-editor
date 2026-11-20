@@ -1,3 +1,4 @@
+const ENVIRONMENT_SCALE = 1.462; // User-requested trial scale; not measured calibration.
 import {robotMetadata,bindRobot,setRobotJoint,robotPanel} from './robot.js?v=1';
 import {createPlacement} from './placement.js?v=robot-1';
 import {extraCatalog} from './asset-catalog.js';
@@ -5,7 +6,7 @@ import * as THREE from 'three';
 import {OrbitControls} from './vendor/OrbitControls.js';
 import {TransformControls} from './vendor/TransformControls.js';
 import {GLTFLoader} from './vendor/GLTFLoader.js';
-import {createAppearance} from './appearance.js?v=5';
+import {createAppearance} from './appearance.js?v=scale-1462';
 import {zipSync, strToU8} from './vendor/fflate.js';
 
 const $ = id => document.getElementById(id);
@@ -77,10 +78,10 @@ function resize() {
   camera.updateProjectionMatrix();
 }
 window.addEventListener('resize', resize);
-function workView() {camera.position.set(0.48,tableY+0.33,1.08); orbit.target.set(0,tableY+0.10,0); orbit.update();}
-function robotView(){camera.position.set(3.2,2.2,3.6);orbit.target.set(0,.9,.5);orbit.update();}
+function workView() {camera.position.set(0.48*ENVIRONMENT_SCALE,tableY+0.33*ENVIRONMENT_SCALE,1.08*ENVIRONMENT_SCALE); orbit.target.set(0,tableY+0.10,0); orbit.update();}
+function robotView(){camera.position.set(3.2*ENVIRONMENT_SCALE,2.2*ENVIRONMENT_SCALE,3.6*ENVIRONMENT_SCALE);orbit.target.set(0,1.25,.5);orbit.update();}
 $('robotView').onclick=robotView;
-function wholeView() {camera.position.set(2.3,1.8,3.0); orbit.target.set(0,0.95,0); orbit.update();}
+function wholeView() {camera.position.set(2.3*ENVIRONMENT_SCALE,1.8*ENVIRONMENT_SCALE,3.0*ENVIRONMENT_SCALE); orbit.target.set(0,0.95*ENVIRONMENT_SCALE,0); orbit.update();}
 workView(); resize();
 renderer.setAnimationLoop(() => {
   if (busy) return;
@@ -263,7 +264,7 @@ function serializeObject(object) {
 }
 function snapshot() {
   camera.updateMatrixWorld(true);
-  return {appearance:appearance.settings(),version:1,units:'meters',axes:'right-handed, Y up',matrixLayout:'column-major',tableY,cabinet:{file:'hood_user_20261104.glb',normalization:cabinetNormalization,assumedWidth:1.3,heightFromSourceAspect:1.6016379,sashFraction,source:'通风橱_双模块_玻璃轨迹修正(1).blend'},objects:objects.map(serializeObject),camera:{position:camera.position.toArray(),target:orbit.target.toArray(),fov:camera.fov},exposure:renderer.toneMappingExposure};
+  return {appearance:appearance.settings(),version:1,units:'meters',axes:'right-handed, Y up',matrixLayout:'column-major',tableY,cabinet:{file:'hood_user_20261104.glb',normalization:cabinetNormalization,assumedWidth:1.3*ENVIRONMENT_SCALE,heightFromSourceAspect:1.6016379*ENVIRONMENT_SCALE,trialScale:ENVIRONMENT_SCALE,metricScaleVerified:false,sashFraction,source:'通风橱_双模块_玻璃轨迹修正(1).blend'},objects:objects.map(serializeObject),camera:{position:camera.position.toArray(),target:orbit.target.toArray(),fov:camera.fov},exposure:renderer.toneMappingExposure};
 }
 function download(data,name,type) {
   const url=URL.createObjectURL(new Blob([data],{type}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),60000);
@@ -317,7 +318,7 @@ async function exportDataset(count) {
       $('progress').textContent=`已渲染 ${i+1} / ${count}`;await new Promise(resolve=>setTimeout(resolve,20));
     }
     files['scene.json']=strToU8(JSON.stringify(initial,null,2));
-    files['README.txt']=strToU8('RGB and camera/object poses. Units meters. Y-up right-handed. Matrices column-major. Model normalization is recorded in scene.json; apply normalization to source GLB before object matrixWorld. 2D boxes are projected world AABBs, not visibility masks. Uncalibrated model dimensions remain assumed. No rigid-body or fluid dynamics. Cabinet is the user Blender asset, uniformly scaled to assumed 1.3 m width; original geometry and sash animation retained.');
+    files['README.txt']=strToU8('RGB and camera/object poses. Units meters. Y-up right-handed. Matrices column-major. Model normalization is recorded in scene.json; apply normalization to source GLB before object matrixWorld. 2D boxes are projected world AABBs, not visibility masks. Uncalibrated model dimensions remain assumed. No rigid-body or fluid dynamics. Cabinet is the user Blender asset, uniformly scaled by user trial factor 1.462 to assumed 1.9006 m width (not measured); original geometry and sash animation retained.');
     download(zipSync(files,{level:0}),'lab_dataset_'+Date.now()+'.zip','application/zip');
     $('progress').textContent=`完成 ${count} 张图像及对应标注，已生成 ZIP`;
   } finally {
@@ -329,16 +330,16 @@ $('render').onclick=run(()=>exportDataset(1));
 $('batch').onclick=run(()=>exportDataset(Math.max(2,Math.min(36,Number($('count').value)||8))));
 async function init(){
   const gltf=await loader.loadAsync('assets/hood_user_20261104.glb');
-  cabinet=gltf.scene;
-  tableY=0.62993;
-  cabinetNormalization={scale:[1,1,1],translation:[0,0,0],note:'GLB already aligned Y-up and uniformly scaled; width 1.3 m is a display assumption; see instruction.md'};
+  cabinet=new THREE.Group();cabinet.add(gltf.scene);cabinet.scale.setScalar(ENVIRONMENT_SCALE);
+  tableY=0.62993*ENVIRONMENT_SCALE;
+  cabinetNormalization={scale:[ENVIRONMENT_SCALE,ENVIRONMENT_SCALE,ENVIRONMENT_SCALE],translation:[0,0,0],note:'User trial scale 1.462 relative to former 1.3 m width; not measured calibration'};
   cabinetClip=gltf.animations[0];
-  if(cabinetClip){cabinetMixer=new THREE.AnimationMixer(cabinet);cabinetMixer.clipAction(cabinetClip).play();setSash(sashFraction);}
-  scene.add(cabinet);grid.position.y=tableY+0.002;
-  appearance.setupCabinet(cabinet,tableY);
-  const plate=await addObject('plate');plate.position.set(-0.13,tableY,0.05);
-  const tips=await addObject('tips1000');tips.position.set(0.15,tableY,-0.04);await splitTipBox(tips);
-  const p1000=await addObject('lichen_p1000');p1000.position.set(.32,tableY,.08);
+  if(cabinetClip){cabinetMixer=new THREE.AnimationMixer(gltf.scene);cabinetMixer.clipAction(cabinetClip).play();setSash(sashFraction);}
+  scene.add(cabinet);grid.position.y=tableY+0.002;grid.scale.x=ENVIRONMENT_SCALE;grid.scale.z=.43*ENVIRONMENT_SCALE;
+  appearance.setupCabinet(cabinet,0.62993,ENVIRONMENT_SCALE);
+  const plate=await addObject('plate');plate.position.set(-0.13*ENVIRONMENT_SCALE,tableY,0.05*ENVIRONMENT_SCALE);
+  const tips=await addObject('tips1000');tips.position.set(0.15*ENVIRONMENT_SCALE,tableY,-0.04*ENVIRONMENT_SCALE);await splitTipBox(tips);
+  const p1000=await addObject('lichen_p1000');p1000.position.set(.32*ENVIRONMENT_SCALE,tableY,.08*ENVIRONMENT_SCALE);
   const robot=await addObject('wheel_robot');
   objects.forEach(o=>placement.remember(o));robotView();select(robot);status('就绪 · 已加入 AR5 双臂机器人，可在右侧调整关节');
   window.labStudio={scene,camera,objects:()=>objects,addObject,splitTipBox,placement,select,setRobotJoint,robotView,snapshot,annotations,exportDataset,cabinet,setSash,ready:true};
