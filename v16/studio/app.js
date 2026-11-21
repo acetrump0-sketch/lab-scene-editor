@@ -1,12 +1,12 @@
 import {leftCameraMetadata,attachLeftCamera,leftCameraPose} from '../../left-camera.js';
-import {createPickupDemo} from './pickup-demo.js?v=tipbox-fit-20261121';
+import {createPickupDemo} from './pickup-demo.js?v=tipbox-8mm-fitted-20261121';
 import {createCollisionWorld} from '../../collision.js?v=environment-2';
 const ENVIRONMENT_SCALE = 1.462; // User-requested trial scale; not measured calibration.
 import {robotMetadata,bindRobot,setRobotCollisionGuard,setRobotJoint,robotPanel,rightToolMountMetadata,attachRightPipette,robotToolPose} from '../../robot.js?v=environment-2';
 import {createNavigation} from './navigation.js?v=18';
 import {createLaboratoryEnvironment} from './laboratory.js?v=environment-2';
 import {createPlacement} from './placement.js?v=environment-2';
-import {extraCatalog} from './asset-catalog.js?v=tipbox-fit-20261121';
+import {extraCatalog} from './asset-catalog.js?v=tipbox-8mm-fitted-20261121';
 import * as THREE from 'three';
 import {OrbitControls} from '../../vendor/OrbitControls.js';
 import {TransformControls} from '../../vendor/TransformControls.js';

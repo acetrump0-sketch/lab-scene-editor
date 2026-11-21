@@ -9,7 +9,7 @@ export function createPickupDemo({scene,camera,orbit,loadModel,objects,setSash,g
   const group=new T.Group(),visibility=[];const controls=[...document.querySelectorAll('button,input,select')].map(e=>[e,e.disabled]);
   try{
    const response=await fetch('../../assets/demos/dual_arm_camera_pickup.json');if(!response.ok)throw Error('演示轨迹加载失败');const motion=await response.json();
-   const [model,box,tool,meta,mount,cameraModel,cameraMount]=await Promise.all([loadModel('robot/wheel_robot.glb'),loadModel('tipbox_fit_corrected.glb'),loadModel('pipette_stand_metal_tip.glb'),robotMetadata(),rightToolMountMetadata(),loadModel('robot/left_flange_camera.glb'),leftCameraMetadata()]);
+   const [model,box,tool,meta,mount,cameraModel,cameraMount]=await Promise.all([loadModel('robot/wheel_robot.glb'),loadModel('tipbox_8mm_fitted.glb'),loadModel('pipette_stand_metal_tip.glb'),robotMetadata(),rightToolMountMetadata(),loadModel('robot/left_flange_camera.glb'),leftCameraMetadata()]);
    const robot=new T.Group(),bounds=new T.Box3().setFromObject(model),center=bounds.getCenter(new T.Vector3());model.position.set(-center.x,-bounds.min.y,-center.z);robot.add(model);robot.position.fromArray(motion.robotPosition);robot.rotation.y=motion.robotYaw;bindRobot(robot,meta);attachRightPipette(robot,tool,mount);const optical=attachLeftCamera(robot,cameraModel,cameraMount);const holder=robot.getObjectByName('right_arm_pipette');
    box.position.fromArray(motion.boxPosition).add(new T.Vector3(...motion.boxNormalization));group.add(robot,box);scene.add(group);
    const tips=[];box.traverse(o=>{if(o.name.includes('A12'))tips.push(o);});if(tips.length!==2)throw Error('演示枪头或滤芯缺失');

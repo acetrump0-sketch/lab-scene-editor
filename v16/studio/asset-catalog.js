@@ -1,5 +1,5 @@
 export const extraCatalog = {
-  "new_tipbox": {"label":"新枪头盒 · 孔径配合修正版","file":"tipbox_fit_corrected.glb","nativeScale":true,"assetVersion":"20261121-fit-corrected","metricBasis":"source_model_meters_unverified","note":"用户11月21日孔径配合修正版：白色盒身、黄色6.5mm凸台、96支黑色枪头及滤芯；抽查托盘孔径约5.1mm。保留源文件米制比例，实际接口配合尚未实测。"},
+  "new_tipbox": {"label":"新枪头盒 · 原8mm孔板枪头贴合","file":"tipbox_8mm_fitted.glb","nativeScale":true,"assetVersion":"20261121-8mm-fitted","metricBasis":"source_model_meters_unverified","note":"用户11月21日原8mm孔板枪头贴合版：保留原孔板，96支枪头外形加粗贴合，孔口中心不变；白色盒身与黄色凸台保持源模型尺寸。实际配合尚未实测。"},
   "pipette_stand_metal_tip": {
   "label": "新移液枪 · 绿色支架与金属末端",
   "file": "pipette_stand_metal_tip.glb",
